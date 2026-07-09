@@ -14,7 +14,7 @@ import { useSidebar } from '@/providers/sidebar-provider';
 import type { EA } from '@/providers/app-provider';
 
 export default function HomeScreen() {
-  const { eas, isFirstTime, setIsFirstTime, removeEA, isBotActive, setBotActive, setActiveEA, user, mt5Account, mt4Account, activateMT5Symbol, deactivateMT5Symbol, mt5Symbols } = useApp();
+  const { eas, isFirstTime, setIsFirstTime, removeEA, isBotActive, setBotActive, setActiveEA, user, mt5Account, mt4Account, activateMT5Symbol, deactivateMT5Symbol, mt5Symbols, ensureMT5Connected } = useApp();
   const [scannerGateMsg, setScannerGateMsg] = useState<string | null>(null);
   const [quickStartOpen, setQuickStartOpen] = useState<boolean>(false);
 
@@ -25,14 +25,18 @@ export default function HomeScreen() {
     const symbol = cfg.symbol.trim();
     const lot = parseFloat(String(cfg.lotSize).replace(',', '.')) || 0.01;
     const count = Math.max(1, Math.min(100, parseInt(cfg.numberOfTrades, 10) || 1));
-    const uuid = mt5Account?.uuid;
+    let uuid = mt5Account?.uuid;
     if (!symbol || !uuid) return;
     try { (mt5Symbols || []).forEach((m) => { try { deactivateMT5Symbol(m.symbol); } catch {} }); } catch {}
     try { activateMT5Symbol({ symbol, lotSize: String(lot), numberOfTrades: String(count), direction: 'BOTH' }); } catch {}
     setBotActive(true);
+    // Verify the broker still holds this session (and silently reconnect if not)
+    // before handing the UUID to the server-side batch engine.
+    const fresh = await ensureMT5Connected();
+    if (fresh) uuid = fresh;
     try { await apiService.startBatch(uuid, { symbol, volume: lot, count, intervalMinutes: 10, comment: (eas?.[0]?.name || 'Robot') }); }
     catch (e: any) { console.error('[quickstart] startBatch error:', e?.message || e); }
-  }, [mt5Account?.uuid, mt5Symbols, activateMT5Symbol, deactivateMT5Symbol, setBotActive, eas]);
+  }, [mt5Account?.uuid, mt5Symbols, activateMT5Symbol, deactivateMT5Symbol, setBotActive, eas, ensureMT5Connected]);
 
   const handleToggleBot = useCallback(async () => {
     if (isBotActive) {
@@ -41,9 +45,15 @@ export default function HomeScreen() {
       if (uuid) { try { await apiService.stopBatch(uuid); } catch (e: any) { console.error('[stop] stopBatch error:', e?.message || e); } }
       return;
     }
-    if (!mt5Account?.uuid || !mt5Account?.connected) { setScannerGateMsg('Connect your MT5 account before starting.'); return; }
+    if (!mt5Account?.uuid) { setScannerGateMsg('Connect your MT5 account before starting.'); return; }
+    // Stored connected flag is not proof the broker still holds the session —
+    // probe/reconnect once, and only block if the reconnect genuinely fails.
+    if (!mt5Account?.connected) {
+      const fresh = await ensureMT5Connected();
+      if (!fresh) { setScannerGateMsg('Connect your MT5 account before starting.'); return; }
+    }
     setQuickStartOpen(true); // always show the popup on start
-  }, [isBotActive, mt5Account?.uuid, mt5Account?.connected, setBotActive]);
+  }, [isBotActive, mt5Account?.uuid, mt5Account?.connected, setBotActive, ensureMT5Connected]);
 
   // Scanner requires a connected MT4 or MT5 account. If neither is connected,
   // show the SETUP REQUIRED popup instead of opening the scanner.

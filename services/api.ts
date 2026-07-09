@@ -245,6 +245,13 @@ class ApiService {
     return data;
   }
 
+  async reconnectMT5(uuid: string, server: string, login: string, password: string): Promise<{ uuid: string; reconnected: boolean }> {
+    const res = await fetch(`${BASE_URL}/api/mt5/reconnect`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uuid, server, login, password }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Reconnect failed');
+    return data;
+  }
+
   async disconnectMT5(uuid: string): Promise<{ message: string }> {
     const res = await fetch(`${BASE_URL}/api/mt5/connect?id=${encodeURIComponent(uuid)}`, { method: 'DELETE' });
     const data = await res.json();

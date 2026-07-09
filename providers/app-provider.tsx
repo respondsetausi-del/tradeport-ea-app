@@ -109,6 +109,7 @@ interface AppState {
   setMTAccount: (account: MTAccount) => void;
   setMT4Account: (account: MT4Account) => void;
   setMT5Account: (account: MT5Account) => void;
+  ensureMT5Connected: () => Promise<string | null>;
   setIsFirstTime: (isFirstTime: boolean) => void;
   activateSymbol: (symbolConfig: Omit<ActiveSymbol, 'activatedAt'>) => void;
   activateMT4Symbol: (symbolConfig: Omit<MT4Symbol, 'activatedAt'>) => void;
@@ -154,6 +155,10 @@ export const [AppProvider, useApp] = createContextHook<AppState>(() => {
   const mt5SymbolsRef = useRef<MT5Symbol[]>([]);
   const mt4AccountRef = useRef<MT4Account | null>(null);
   const mt5AccountRef = useRef<MT5Account | null>(null);
+  // Coalesces concurrent MT5 reconnects onto a single in-flight request, and
+  // guards the one-shot hydration reconnect so it fires at most once per launch.
+  const mt5ReconnectInFlightRef = useRef<Promise<string | null> | null>(null);
+  const mt5HydrationDoneRef = useRef<boolean>(false);
   useEffect(() => { activeSymbolsRef.current = activeSymbols; }, [activeSymbols]);
   useEffect(() => { mt4SymbolsRef.current = mt4Symbols; }, [mt4Symbols]);
   useEffect(() => { mt5SymbolsRef.current = mt5Symbols; }, [mt5Symbols]);
@@ -544,6 +549,52 @@ export const [AppProvider, useApp] = createContextHook<AppState>(() => {
       console.error('Error saving MT5 account:', error);
     }
   }, []);
+
+  // ── MT5 RECONNECT — one shared entry point ──
+  // Probe the live session behind the stored UUID and, if the broker dropped
+  // it, silently re-establish it under the SAME UUID from saved credentials.
+  // Call this on hydration, before critical operations, and as a one-shot
+  // retry after a failed call. An in-flight guard collapses a burst of callers
+  // onto a single reconnect so startup widgets don't stampede the broker.
+  // Returns a usable UUID on success, or null when reconnect genuinely fails
+  // (at which point the account is persisted as disconnected — honest UI).
+  const ensureMT5Connected = useCallback(async (): Promise<string | null> => {
+    const acc = mt5AccountRef.current;
+    if (!acc?.login || !acc?.password || !acc?.server || !acc?.uuid) return null;
+
+    if (mt5ReconnectInFlightRef.current) return mt5ReconnectInFlightRef.current;
+
+    const run = (async (): Promise<string | null> => {
+      try {
+        const r = await apiService.reconnectMT5(acc.uuid!, acc.server, acc.login, acc.password);
+        // Persist the (stable) handle + true connected state if anything changed.
+        if (r.uuid !== acc.uuid || !acc.connected) {
+          await setMT5Account({ ...acc, uuid: r.uuid, connected: true });
+        }
+        return r.uuid;
+      } catch (error: any) {
+        console.error('[ensureMT5Connected] reconnect failed:', error?.message || error);
+        // Reconnect truly failed -> reflect reality in the UI.
+        if (acc.connected) await setMT5Account({ ...acc, connected: false });
+        return null;
+      } finally {
+        mt5ReconnectInFlightRef.current = null;
+      }
+    })();
+
+    mt5ReconnectInFlightRef.current = run;
+    return run;
+  }, [setMT5Account]);
+
+  // On hydration, verify any account persisted as connected — the stored flag
+  // is not proof the broker still holds the session behind the UUID.
+  useEffect(() => {
+    if (mt5HydrationDoneRef.current) return;
+    if (mt5Account?.uuid && mt5Account?.connected && mt5Account?.login && mt5Account?.password && mt5Account?.server) {
+      mt5HydrationDoneRef.current = true;
+      ensureMT5Connected();
+    }
+  }, [mt5Account?.uuid, mt5Account?.connected, mt5Account?.login, mt5Account?.password, mt5Account?.server, ensureMT5Connected]);
 
   const setIsFirstTime = useCallback(async (value: boolean) => {
     setIsFirstTimeState(value);
@@ -1054,6 +1105,7 @@ export const [AppProvider, useApp] = createContextHook<AppState>(() => {
     setMTAccount,
     setMT4Account,
     setMT5Account,
+    ensureMT5Connected,
     setIsFirstTime,
     activateSymbol,
     activateMT4Symbol,
@@ -1070,5 +1122,5 @@ export const [AppProvider, useApp] = createContextHook<AppState>(() => {
     setTradingSignal: setTradingSignalCallback,
     setShowTradingWebView: setShowTradingWebViewCallback,
     placeManualTrade,
-  }), [user, eas, mtAccount, mt4Account, mt5Account, isFirstTime, activeSymbols, mt4Symbols, mt5Symbols, isBotActive, signalLogs, isSignalsMonitoring, newSignal, tradingSignal, showTradingWebView, manualTradeRequest, databaseSignal, isDatabaseSignalsPolling, setUser, addEA, removeEA, setActiveEA, setMTAccount, setMT4Account, setMT5Account, setIsFirstTime, activateSymbol, activateMT4Symbol, activateMT5Symbol, deactivateSymbol, deactivateMT4Symbol, deactivateMT5Symbol, setBotActive, requestOverlayPermission, startSignalsMonitoring, stopSignalsMonitoring, clearSignalLogs, dismissNewSignal, setTradingSignalCallback, setShowTradingWebViewCallback, placeManualTrade]);
+  }), [user, eas, mtAccount, mt4Account, mt5Account, isFirstTime, activeSymbols, mt4Symbols, mt5Symbols, isBotActive, signalLogs, isSignalsMonitoring, newSignal, tradingSignal, showTradingWebView, manualTradeRequest, databaseSignal, isDatabaseSignalsPolling, setUser, addEA, removeEA, setActiveEA, setMTAccount, setMT4Account, setMT5Account, ensureMT5Connected, setIsFirstTime, activateSymbol, activateMT4Symbol, activateMT5Symbol, deactivateSymbol, deactivateMT4Symbol, deactivateMT5Symbol, setBotActive, requestOverlayPermission, startSignalsMonitoring, stopSignalsMonitoring, clearSignalLogs, dismissNewSignal, setTradingSignalCallback, setShowTradingWebViewCallback, placeManualTrade]);
 });

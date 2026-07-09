@@ -32,7 +32,7 @@ const mockQuotes: Quote[] = [
 ];
 
 export default function QuotesScreen() {
-  const { eas, activeSymbols, mt4Symbols, mt5Symbols, mt5Account } = useApp();
+  const { eas, activeSymbols, mt4Symbols, mt5Symbols, mt5Account, ensureMT5Connected } = useApp();
   const { theme: thm, glassMode } = useTheme();
   const a = thm.accentRgb;
   const ac = thm.accent;
@@ -78,7 +78,15 @@ export default function QuotesScreen() {
 
       // Prefer the connected MT5 account's real broker symbols (Api2Trade pull).
       if (mt5Account?.uuid && mt5Account.connected) {
-        const list = await apiService.getMT5Symbols(mt5Account.uuid);
+        // Probe, reconnect, retry once — a stale UUID otherwise fails silently.
+        let list: string[];
+        try {
+          list = await apiService.getMT5Symbols(mt5Account.uuid);
+        } catch (fetchError) {
+          const fresh = await ensureMT5Connected();
+          if (!fresh) throw fetchError;
+          list = await apiService.getMT5Symbols(fresh);
+        }
         const syms = Array.isArray(list) ? list : [];
         setApiSymbols(syms.map((s) => ({ id: s, name: s })));
         setQuotes(syms.map((symbolName) => {
@@ -174,7 +182,7 @@ export default function QuotesScreen() {
         setRefreshing(false);
       }, showRefreshIndicator ? 300 : 0);
     }
-  }, [activeSymbols, mt4Symbols, mt5Symbols, quotes.length, mt5Account?.uuid, mt5Account?.connected]);
+  }, [activeSymbols, mt4Symbols, mt5Symbols, quotes.length, mt5Account?.uuid, mt5Account?.connected, ensureMT5Connected]);
 
   // Initial load and refresh when symbols change
   useEffect(() => {

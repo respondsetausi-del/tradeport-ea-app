@@ -88,6 +88,38 @@ export async function getAccountSummary(id: string): Promise<AccountSummary> {
   return api2tradeGet<AccountSummary>('AccountSummary', { id });
 }
 
+// ── Liveness + Reconnect ────────────────────────────────────
+//
+// Verify the session behind `id` is live and, if not, silently
+// re-establish it under the SAME id from stored credentials.
+//
+// The probe IS the app's real source of truth: an authenticated
+// AccountSummary that returns a real leverage means the broker still
+// holds the live MT5 session behind this UUID. If the broker expired
+// the session (idle timeout / infra restart), the probe fails and we
+// re-authenticate under the same UUID so the client's persisted handle
+// stays stable and nothing downstream has to be rewired.
+export async function ensureConnected(
+  id: string,
+  server: string,
+  user: string,
+  password: string,
+): Promise<{ reconnected: boolean }> {
+  try {
+    const summary = await getAccountSummary(id);
+    if (summary?.leverage) return { reconnected: false };
+  } catch {
+    /* probe failed -> treat as dead, re-establish below */
+  }
+
+  // Re-auth under the same id. Tolerate ConnectEx throwing
+  // (e.g. "already connected") — the summary re-check is the gate.
+  await connectEx(id, server, user, password).catch(() => {});
+  const summary = await getAccountSummary(id);
+  if (!summary?.leverage) throw new Error('Reconnect failed');
+  return { reconnected: true };
+}
+
 export interface AccountInfo {
   login: number;
   type: string;

@@ -1394,6 +1394,12 @@ async function handleApi(request: Request): Promise<Response> {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
+    if (pathname === '/api/mt5/reconnect') {
+      const route = await import('./app/api/mt5/reconnect/route.ts');
+      if (request.method === 'POST' && typeof route.POST === 'function') return route.POST(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
     if (pathname === '/api/mt5/symbols') {
       const route = await import('./app/api/mt5/symbols/route.ts');
       if (request.method === 'GET' && typeof route.GET === 'function') return route.GET(request) as Promise<Response>;

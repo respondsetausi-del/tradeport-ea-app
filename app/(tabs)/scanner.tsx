@@ -65,7 +65,7 @@ const SCAN_SYMBOL_KEY = 'scanSymbol.v1';
 const SIGNAL_TTL_MS = 15 * 60 * 1000;
 
 export default function ScannerScreen() {
-  const { mt4Symbols, mt5Symbols, placeManualTrade, mt5Account, eas } = useApp();
+  const { mt4Symbols, mt5Symbols, placeManualTrade, mt5Account, eas, ensureMT5Connected } = useApp();
   const { theme } = useTheme();
   const accent = theme.accent;
 
@@ -216,11 +216,14 @@ export default function ScannerScreen() {
     const action = result.signal.action;
     if (action === 'BUY' || action === 'SELL') {
       const sym = (tradeSymbol || '').trim(); // exact broker casing — no uppercasing
-      const uuid = mt5Account?.uuid;
+      let uuid = mt5Account?.uuid;
       const cfg = lookupSymbolConfig(sym);
       const lot = parseFloat(String(tradeLot.trim() || cfg?.lot || '0.01').replace(',', '.'));
       const count = Math.max(1, Math.min(100, parseInt(tradeCount.trim() || cfg?.count || '1', 10) || 1));
       if (sym && uuid && isFinite(lot) && lot > 0) {
+        // Probe/reconnect once so a silently-expired session doesn't drop trades.
+        const fresh = await ensureMT5Connected();
+        if (fresh) uuid = fresh;
         const operation = action === 'BUY' ? 'Buy' : 'Sell';
         Promise.all(Array.from({ length: count }, () =>
           apiService.sendMT5Trade({ id: uuid, action: 'open', symbol: sym, operation, volume: lot, comment: (eas?.[0]?.name || 'Robot') })
@@ -230,7 +233,7 @@ export default function ScannerScreen() {
         console.warn('[scanner] auto-exec skipped: no symbol selected');
       }
     }
-  }, [tradeSymbol, tradeLot, tradeCount, lookupSymbolConfig, mt5Account?.uuid, eas]);
+  }, [tradeSymbol, tradeLot, tradeCount, lookupSymbolConfig, mt5Account?.uuid, eas, ensureMT5Connected]);
 
   // Holds the real analysis result until at least `scanTargetMsRef.current`
   // has elapsed since the scan started. This is what makes each scan feel
