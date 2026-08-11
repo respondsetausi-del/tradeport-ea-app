@@ -7,7 +7,11 @@ export async function POST(request: Request): Promise<Response> {
     const symbol = body?.symbol as string;
     const volume = Number(body?.volume);
     const count = Number(body?.count) || 1;
-    const intervalMinutes = Number(body?.intervalMinutes) || 10;
+    // The client currently hardcodes 10. BATCH_INTERVAL_MIN lets a local test
+    // run a short cycle without rebuilding the web bundle; unset in production,
+    // so behaviour there is unchanged.
+    const override = Number(process.env.BATCH_INTERVAL_MIN);
+    const intervalMinutes = override > 0 ? override : (Number(body?.intervalMinutes) || 10);
     const comment = (body?.comment as string) || '';
     if (!id || !symbol || !volume) {
       return Response.json({ error: 'id, symbol and volume are required' }, { status: 400 });

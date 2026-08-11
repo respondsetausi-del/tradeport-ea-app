@@ -249,6 +249,45 @@ export async function getSymbolList(id: string): Promise<string[]> {
   return api2tradeGet<string[]>('SymbolList', { id });
 }
 
+export interface Candle {
+  time: string;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  closePrice: number;
+  tickVolume?: number;
+  spread?: number;
+  volume?: number;
+}
+
+/**
+ * OHLC candles for indicator work.
+ *
+ * `timeframe` is the bar size in MINUTES as a number (1, 5, 15, 60, 240).
+ * Passing MT-style names ("M1", "M15") does NOT error — Api2Trade silently
+ * ignores them and returns 4-hour bars starting in 2022, which will quietly
+ * feed an indicator the wrong data. Always pass a number.
+ *
+ * `from`/`to` are ISO datetimes in broker server time; without them you get
+ * that same 2022 default window rather than recent bars.
+ */
+export async function getPriceHistory(
+  id: string,
+  symbol: string,
+  timeframeMinutes: number,
+  from: Date,
+  to: Date,
+): Promise<Candle[]> {
+  const iso = (d: Date) => d.toISOString().slice(0, 19);
+  return api2tradeGet<Candle[]>('PriceHistory', {
+    id,
+    symbol,
+    timeframe: Math.max(1, Math.round(timeframeMinutes)),
+    from: iso(from),
+    to: iso(to),
+  });
+}
+
 export async function getMarketWatch(id: string, symbols: string[]): Promise<any[]> {
   const url = new URL(`${API2TRADE_BASE}/MarketWatchMany`);
   url.searchParams.set('id', id);

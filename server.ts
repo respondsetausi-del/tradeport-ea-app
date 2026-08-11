@@ -1412,6 +1412,36 @@ async function handleApi(request: Request): Promise<Response> {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
+    if (pathname === '/api/mt5/orders') {
+      const route = await import('./app/api/mt5/orders/route.ts');
+      if (request.method === 'GET' && typeof route.GET === 'function') return route.GET(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    if (pathname === '/api/mt5/history') {
+      const route = await import('./app/api/mt5/history/route.ts');
+      if (request.method === 'GET' && typeof route.GET === 'function') return route.GET(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    if (pathname === '/api/mt5/strategy/start') {
+      const route = await import('./app/api/mt5/strategy/start/route.ts');
+      if (request.method === 'POST' && typeof route.POST === 'function') return route.POST(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    if (pathname === '/api/mt5/strategy/stop') {
+      const route = await import('./app/api/mt5/strategy/stop/route.ts');
+      if (request.method === 'POST' && typeof route.POST === 'function') return route.POST(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    if (pathname === '/api/mt5/strategy/status') {
+      const route = await import('./app/api/mt5/strategy/status/route.ts');
+      if (request.method === 'GET' && typeof route.GET === 'function') return route.GET(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
     if (pathname === '/api/mt5/batch/start') {
       const route = await import('./app/api/mt5/batch/start/route.ts');
       if (request.method === 'POST' && typeof route.POST === 'function') return route.POST(request) as Promise<Response>;
@@ -1670,5 +1700,12 @@ import('./app/api/mt5/batch/engine.ts')
   .then((m) => m.resumeBatches?.())
   .then(() => console.log('[Batch:srv] resume-on-boot complete'))
   .catch((e) => console.error('[Batch:srv] resume-on-boot failed:', e?.message || e));
+
+// Same for strategy runs. These revive their own broker session on the way up,
+// so a redeploy at 3am with every phone asleep still comes back trading.
+import('./app/api/mt5/strategy/engine.ts')
+  .then((m) => m.resumeStrategies?.())
+  .then(() => console.log('[Strat:srv] resume-on-boot complete'))
+  .catch((e) => console.error('[Strat:srv] resume-on-boot failed:', e?.message || e));
 
 

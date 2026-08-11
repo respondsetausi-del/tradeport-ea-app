@@ -91,6 +91,33 @@ function maybeStopKeepAlive(): void {
   if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
 }
 
+// ── Flat verification ───────────────────────────────────────────────────────
+//
+// The batch is only hedge-free if "the account is flat" is a PROVEN fact
+// before the opposite direction opens. Every read below is fail-CLOSED:
+// "I could not find out" is never treated as "flat", because opening on an
+// unknown is exactly how Buy and Sell end up live at the same time.
+type FlatCheck = 'FLAT' | 'STILL_OPEN' | 'UNKNOWN';
+
+const FLAT_PASSES = 4;      // confirm passes after a close
+const SETTLE_MS = 1500;     // broker needs a beat; backs off per pass
+const RETRY_MS = 60_000;    // hold and retry when we can't prove flat
+const RESUME_MIN_DELAY_MS = 10_000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Positions open on this symbol, or null when the account can't be read. */
+async function openPositions(id: string, symbol: string): Promise<any[] | null> {
+  try {
+    const open = await getOpenOrders(id);
+    if (!Array.isArray(open)) return null; // unparseable — unknown, NOT flat
+    return open.filter((o: any) => o?.symbol === symbol && o?.ticket);
+  } catch (e: any) {
+    console.error(`[Batch:srv] ${id} openPositions error:`, e?.message || e);
+    return null;
+  }
+}
+
 // ── Trading primitives (all concurrent) ──
 async function openBatch(id: string, f: Flight): Promise<void> {
   const dir = f.dir;
@@ -100,54 +127,105 @@ async function openBatch(id: string, f: Flight): Promise<void> {
         .catch((e: any) => { console.error(`[Batch:srv] ${id} open error:`, e?.message || e); return null; }),
     ),
   );
-  f.tickets = [];
+
+  let lost = 0;
   for (const o of results) {
     if (o && typeof o.ticket === 'number' && o.ticket > 0) f.tickets.push(o.ticket);
     else if (o) f.status = `Broker rejected ${dir} ${f.symbol}: ${o?.error || o?.message || 'no ticket'}`;
+    else lost += 1; // threw/timed out — the order may still have filled
   }
+
+  // A send that threw can still be live at the broker. Adopt anything on the
+  // symbol we don't already know about, or it becomes an invisible position
+  // that the next flip hedges against.
+  if (lost > 0) {
+    const live = await openPositions(id, f.symbol);
+    if (live) {
+      const adopted = live.filter((o: any) => !f.tickets.includes(o.ticket)).map((o: any) => o.ticket);
+      if (adopted.length) {
+        f.tickets.push(...adopted);
+        console.warn(`[Batch:srv] ${id} adopted ${adopted.length} untracked ticket(s) after ${lost} failed send(s)`);
+      }
+    } else {
+      f.status = `${lost} send(s) failed and the account could not be re-read — positions may be untracked`;
+    }
+  }
+
   console.log(`[Batch:srv] ${id} opened ${f.tickets.length}/${f.count} ${dir} ${f.symbol}`);
 }
 
+/** Close the tickets we hold. Failures STAY in f.tickets so they're retried. */
 async function closeBatch(id: string, f: Flight): Promise<void> {
   const toClose = [...f.tickets];
-  f.tickets = [];
-  await Promise.all(toClose.map((t) =>
+  if (!toClose.length) return;
+  const results = await Promise.all(toClose.map((t) =>
     orderClose({ id, ticket: t, lots: f.volume })
-      .then(() => console.log(`[Batch:srv] ${id} closed ${t}`))
-      .catch((e: any) => console.error(`[Batch:srv] ${id} close error:`, e?.message || e)),
+      .then(() => { console.log(`[Batch:srv] ${id} closed ${t}`); return { t, ok: true }; })
+      .catch((e: any) => { console.error(`[Batch:srv] ${id} close error:`, e?.message || e); return { t, ok: false }; }),
   ));
+  f.tickets = results.filter((r) => !r.ok).map((r) => r.t);
 }
 
-// Close any positions already open on this symbol so a flight starts flat.
-async function cleanSymbol(id: string, symbol: string): Promise<void> {
-  try {
-    const open = await getOpenOrders(id);
-    if (!Array.isArray(open)) return;
-    const mine = open.filter((o: any) => o?.symbol === symbol && o?.ticket);
-    if (mine.length === 0) return;
-    await Promise.all(mine.map((o: any) => orderClose({ id, ticket: o.ticket, lots: o.lots }).catch(() => {})));
-  } catch (e: any) { console.error(`[Batch:srv] ${id} cleanSymbol error:`, e?.message || e); }
+/**
+ * Close everything on the symbol and PROVE the account went flat.
+ * Returns UNKNOWN when the account couldn't be read — the caller must treat
+ * that as "do not open", not as flat.
+ */
+async function closeUntilFlat(id: string, f: Flight): Promise<FlatCheck> {
+  await closeBatch(id, f);
+
+  let unreadable = false;
+  for (let pass = 1; pass <= FLAT_PASSES; pass++) {
+    await sleep(SETTLE_MS * pass); // 1.5s, 3s, 4.5s, 6s
+    const open = await openPositions(id, f.symbol);
+
+    if (open === null) { unreadable = true; continue; }
+    unreadable = false;
+
+    if (open.length === 0) { f.tickets = []; return 'FLAT'; }
+
+    console.warn(`[Batch:srv] ${id} still ${open.length} open on ${f.symbol} (pass ${pass}) — re-closing`);
+    f.tickets = open.map((o: any) => o.ticket); // remember them, never drop
+    await Promise.all(open.map((o: any) =>
+      orderClose({ id, ticket: o.ticket, lots: o.lots ?? f.volume }).catch(() => {}),
+    ));
+  }
+
+  return unreadable ? 'UNKNOWN' : 'STILL_OPEN';
 }
 
-function scheduleFlip(id: string, f: Flight, delayMs: number): void {
-  f.timer = setTimeout(async () => {
-    const ff = flights.get(id);
-    if (!ff || !ff.active) return;
-    await closeBatch(id, ff);
-    ff.dir = ff.dir === 'Buy' ? 'Sell' : 'Buy'; // flip each cycle
-    cycle(id);
-  }, Math.max(0, delayMs));
-}
-
-async function cycle(id: string): Promise<void> {
+/**
+ * One cycle: prove flat → (optionally flip) → open. If flat can't be proven
+ * the cycle is ABANDONED — direction is left alone and nothing new is opened.
+ * Holding one direction too long is survivable; opening the opposite side on
+ * top of live positions is not.
+ */
+async function attemptCycle(id: string, flip: boolean): Promise<void> {
   const f = flights.get(id);
   if (!f || !f.active) return;
+
+  const state = await closeUntilFlat(id, f);
+  if (flights.get(id) !== f || !f.active) return;
+
+  if (state !== 'FLAT') {
+    f.status = state === 'UNKNOWN'
+      ? `Cannot verify ${f.symbol} is flat — holding ${f.dir}, retry in ${RETRY_MS / 1000}s`
+      : `${f.tickets.length} position(s) on ${f.symbol} would not close — holding ${f.dir}, retry in ${RETRY_MS / 1000}s`;
+    console.error(`[Batch:srv] ${id} cycle ABORTED (${state}) — no opposite batch opened. ${f.status}`);
+    persist(id, f);
+    f.timer = setTimeout(() => attemptCycle(id, flip), RETRY_MS);
+    return;
+  }
+
+  if (flip) f.dir = f.dir === 'Buy' ? 'Sell' : 'Buy';
   await openBatch(id, f);
+  if (flights.get(id) !== f || !f.active) return;
+
   f.legCount += 1;
   f.nextFlipAt = Date.now() + f.intervalMs;
   f.status = `${f.dir} ${f.symbol} x${f.tickets.length} — flips in ${Math.round(f.intervalMs / 60000)}m`;
   persist(id, f);
-  scheduleFlip(id, f, f.intervalMs);
+  f.timer = setTimeout(() => attemptCycle(id, true), f.intervalMs);
 }
 
 // ── Public API ──
@@ -172,10 +250,9 @@ export function startBatch(params: { id: string; symbol: string; volume: number;
   flights.set(id, f);
   ensureKeepAlive();
   console.log(`[Batch:srv] START ${id} — ${f.symbol} x${f.count} @ ${f.volume}, flip every ${Math.round(f.intervalMs / 60000)}m`);
-  (async () => {
-    await cleanSymbol(id, f.symbol);
-    if (flights.get(id) === f && f.active) cycle(id);
-  })();
+  // First cycle clears the symbol and proves it flat before opening (no flip —
+  // the random first direction stands).
+  attemptCycle(id, false);
   return { ok: true, running: true };
 }
 
@@ -184,18 +261,22 @@ export async function stopBatch(id: string, closeOpen = true) {
   if (!f) { unpersist(id); return { ok: true, wasRunning: false }; }
   f.active = false;
   if (f.timer) { clearTimeout(f.timer); f.timer = null; }
-  if (closeOpen && f.tickets.length) {
-    await Promise.all(f.tickets.map((t) =>
-      orderClose({ id, ticket: t, lots: f.volume })
-        .then(() => console.log(`[Batch:srv] ${id} closed ${t} on stop`))
-        .catch((e: any) => console.error(`[Batch:srv] ${id} stop-close error:`, e?.message || e)),
-    ));
+  let leftOpen: FlatCheck = 'FLAT';
+  if (closeOpen) {
+    // Sweep the symbol, not just our ticket list — a send whose response was
+    // lost leaves a position STOP would otherwise walk away from. f.active
+    // stays false throughout: any attemptCycle still in flight must see a
+    // dead flight and bail rather than open while we're stopping.
+    leftOpen = await closeUntilFlat(id, f);
+    if (leftOpen !== 'FLAT') {
+      console.error(`[Batch:srv] ${id} STOP could not confirm flat (${leftOpen}) — ${f.tickets.length} ticket(s) may still be open on ${f.symbol}`);
+    }
   }
   flights.delete(id);
   unpersist(id);
   maybeStopKeepAlive();
   console.log(`[Batch:srv] STOP ${id}`);
-  return { ok: true, wasRunning: true };
+  return { ok: true, wasRunning: true, flat: leftOpen === 'FLAT', flatCheck: leftOpen };
 }
 
 export function getStatus(id: string) {
@@ -246,8 +327,26 @@ export async function resumeBatches(): Promise<void> {
       flights.set(id, f);
       console.log(`[Batch:srv] RESUME ${id} — ${f.symbol} x${f.count} flip every ${Math.round(f.intervalMs / 60000)}m (due in ${Math.round((f.nextFlipAt - Date.now()) / 1000)}s)`);
       ensureKeepAlive();
-      // Continue the loop: fire the next flip after the remaining hold (or now if overdue).
-      scheduleFlip(id, f, f.nextFlipAt - Date.now());
+
+      // Persisted ticket IDs can be hours stale — the broker may have closed
+      // them, or filled orders we never recorded. Re-read what the account
+      // actually holds before scheduling anything, and never fire instantly on
+      // boot: a restart storm would otherwise trade on a session that has only
+      // just come up.
+      void (async () => {
+        const live = await openPositions(id, f.symbol);
+        if (flights.get(id) !== f || !f.active) return;
+        if (live === null) {
+          f.status = 'Resumed but the account could not be read — retrying before any flip';
+          console.error(`[Batch:srv] ${id} resume could not read positions — deferring ${RETRY_MS / 1000}s`);
+          f.timer = setTimeout(() => attemptCycle(id, true), RETRY_MS);
+          return;
+        }
+        f.tickets = live.map((o: any) => o.ticket);
+        console.log(`[Batch:srv] ${id} resume adopted ${f.tickets.length} live position(s) on ${f.symbol}`);
+        const due = f.nextFlipAt - Date.now();
+        f.timer = setTimeout(() => attemptCycle(id, true), Math.max(RESUME_MIN_DELAY_MS, due));
+      })();
     }
   } catch (e: any) {
     console.error('[Batch:srv] resumeBatches error:', e?.message || e);
