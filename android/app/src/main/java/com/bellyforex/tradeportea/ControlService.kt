@@ -40,6 +40,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import com.bellyforex.tradeportea.network.api.RetrofitInstance
+import com.bellyforex.tradeportea.network.module.Mt5TradeRequest
+import com.bellyforex.tradeportea.utils.Mt5Session
+import com.bellyforex.tradeportea.utils.Mt5Json
 import com.bellyforex.tradeportea.network.db.LicenceDB
 import com.bellyforex.tradeportea.network.module.AuthBody
 import com.bellyforex.tradeportea.network.module.Sicence
@@ -192,13 +196,12 @@ class ControlService: Service(), View.OnTouchListener, View.OnClickListener{
                 Log.d("ControlService", "Signal platform raw: '$rawPlatform', parsed: '$platform'")
 
                 if(platform == "MT5") {
-                    addLogMessage(0,">>Automated Trading is in Progress, Please Do not Use your phone.")
-                    
-                    // Speak "Opening trade"
+                    // No WebView, so nothing takes over the screen and the user
+                    // does not have to leave the phone alone while it trades.
                     TTSManager.speak(TTSManager.Messages.OPENING_TRADE)
 
-                    openMT(it[0])
-                    addLogMessage(0,">>Opening MT5")
+                    executeMt5Signal(it[0])
+                    addLogMessage(0,">>Executing MT5 signal")
                     myView.findViewById<RelativeLayout>(R.id.autotrade).apply{
                         visibility = GONE
                     }
@@ -363,6 +366,67 @@ class ControlService: Service(), View.OnTouchListener, View.OnClickListener{
             }
         }
     }
+    /**
+     * Execute an MT5 signal through Api2Trade.
+     *
+     * This replaces launching TradeActivity, which drove the broker's web
+     * terminal by simulated clicks. That approach placed its orders one at a
+     * time over tens of seconds, so a signal fired while the robot held the
+     * opposite side landed a Buy on top of a Sell — the hedge that was
+     * reported. A REST order fills in one call, and the same session the rest
+     * of the app uses.
+     *
+     * Stop loss and take profit ride along with the order rather than being
+     * applied afterwards, so the position is never briefly unprotected.
+     */
+    private fun executeMt5Signal(signal: Signal) = MainScope().launch {
+        val operation = when (signal.action.trim().lowercase()) {
+            "buy", "long" -> "Buy"
+            "sell", "short" -> "Sell"
+            else -> null
+        }
+        if (operation == null) {
+            addLogMessage(0, ">>Signal ignored — unknown direction '${signal.action}'")
+            return@launch
+        }
+
+        // A stored UUID is not proof the broker still holds the session.
+        val uuid = Mt5Session.ensure(this@ControlService, force = true)
+        if (uuid.isNullOrEmpty()) {
+            addLogMessage(0, ">>MT5 account not connected — signal not taken.")
+            return@launch
+        }
+
+        val lots = signal.lotSize?.takeIf { it > 0 } ?: 0.01
+        val comment = (getSharedPreferences("MyPrefs", MODE_PRIVATE)
+            .getString("ea_name", null)?.takeIf { it.isNotBlank() } ?: "Robot").take(31)
+        // Locale keyboards produce "0,10", which parses to 0 and would be
+        // rejected by the broker as an invalid volume.
+        val sl = signal.sl.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+        val tp = signal.tp.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+
+        try {
+            val response = RetrofitInstance.mt5Api.trade(
+                Mt5TradeRequest(
+                    id = uuid, action = "open", symbol = signal.asset,
+                    operation = operation, volume = lots, comment = comment,
+                    stoploss = sl, takeprofit = tp
+                )
+            )
+            // OrderSend answers 200 even when the broker rejects it, so a
+            // ticket is the only proof the order actually exists.
+            val ticket = Mt5Json.extractTicket(response.body())
+            if (response.isSuccessful && ticket > 0) {
+                addLogMessage(0, ">>$operation ${signal.asset} opened — ticket $ticket")
+            } else {
+                addLogMessage(0, ">>Trade rejected by broker. Check the lot size for ${signal.asset}.")
+            }
+        } catch (e: Exception) {
+            Log.w("ControlService", "signal execute failed", e)
+            addLogMessage(0, ">>Trade failed — check your internet connection.")
+        }
+    }
+
     private fun openMT(signal: Signal)
     {
         val b = Bundle()

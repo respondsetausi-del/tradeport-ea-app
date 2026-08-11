@@ -55,7 +55,14 @@ data class Mt5TradeRequest(
     val symbol: String,
     val operation: String,
     val volume: Double,
-    val comment: String? = null
+    val comment: String? = null,
+    /**
+     * Optional protective levels, sent with the order rather than applied
+     * afterwards — a position that exists for even a moment without its stop is
+     * a position that can gap through where the stop should have been.
+     */
+    val stoploss: Double? = null,
+    val takeprofit: Double? = null
 )
 
 /**
