@@ -6,10 +6,27 @@
 // when a direction appears, holds while it persists, and goes flat when the
 // edge disappears. A direction change is only ever executed through a PROVEN
 // flat account — the same fail-closed rule as the hardened batch engine.
-import { orderSend, orderClose, getOpenOrders, getPriceHistory, ensureConnected } from '@/services/api2trade';
+import {
+  orderSend, orderClose, orderModify, getOpenOrders, getClosedOrders,
+  getPriceHistory, ensureConnected,
+} from '@/services/api2trade';
 import type { Candle } from '@/services/api2trade';
 import { getPool } from '@/app/api/_db';
 import { decide, type Direction, type Signal, type SignalConfig } from './indicators';
+import {
+  decimalsOf, stopPrice, targetPrice, trailTo,
+  realisedSince, consecutiveLosses, isWeekendFlat,
+} from './risk';
+
+export interface RiskConfig {
+  slAtrMult: number;        // protective stop distance, x ATR. 0 disables (not advised)
+  tpAtrMult: number;        // take profit, x ATR. 0 = none, let the trail work
+  trailStartAtr: number;    // profit needed before trailing begins, x ATR
+  trailAtr: number;         // trail distance, x ATR. 0 disables trailing
+  maxDailyLoss: number;     // account currency, positive number. 0 disables
+  maxConsecutiveLosses: number; // 0 disables
+  fridayFlatHourUtc: number;    // flatten from this hour Friday UTC. 0 disables
+}
 
 /** Credentials needed to revive a dead broker session with the app closed. */
 export interface SessionCreds {
@@ -47,6 +64,13 @@ interface Run {
   history: string[]; // human-readable decision log, newest last
   creds: SessionCreds | null;
   lastSessionCheck: number;
+
+  risk: RiskConfig;
+  entryPrice: number | null;
+  currentStop: number | null;
+  decimals: number;
+  halted: boolean;
+  haltReason: string | null;
 }
 
 const runs = new Map<string, Run>();
@@ -85,7 +109,7 @@ function persist(id: string, r: Run): void {
         cfg: r.cfg, timeframeMin: r.timeframeMin, htfMin: r.htfMin,
         evalMs: r.evalMs, alwaysIn: r.alwaysIn, maxWaitMs: r.maxWaitMs,
         flatWhenNoSignal: r.flatWhenNoSignal, reenterEachBar: r.reenterEachBar,
-        trades: r.trades, startedAt: r.startedAt, creds: r.creds,
+        trades: r.trades, startedAt: r.startedAt, creds: r.creds, risk: r.risk,
       });
       await pool.query(
         'INSERT INTO tp_mt5_strategies (uuid, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
@@ -202,9 +226,118 @@ async function openDirection(id: string, r: Run, dir: Direction): Promise<void> 
     }
   }
 
+  // Average fill, for stop placement. Falls back to the last close if the
+  // broker didn't echo a price.
+  const fills = results
+    .map((o: any) => Number(o?.openPrice))
+    .filter((p: number) => Number.isFinite(p) && p > 0);
+  r.entryPrice = fills.length ? fills.reduce((a, b) => a + b, 0) / fills.length : null;
+  r.currentStop = null;
+
   r.held = r.tickets.length ? dir : null;
   r.trades += 1;
-  console.log(`[Strat:srv] ${id} opened ${r.tickets.length}/${r.count} ${dir} ${r.symbol}`);
+  console.log(`[Strat:srv] ${id} opened ${r.tickets.length}/${r.count} ${dir} ${r.symbol} @ ${r.entryPrice ?? '?'}`);
+}
+
+/**
+ * Put a protective stop AT THE BROKER on every open ticket.
+ *
+ * This is the only exit that survives this server dying. Every other rule here
+ * — signal exits, trailing, loss caps — needs the engine alive to act. If the
+ * process is killed mid-trade, the stop is what stands between the account and
+ * an unbounded loss.
+ */
+async function applyProtection(id: string, r: Run, dir: Direction, atrValue: number): Promise<void> {
+  if (!r.tickets.length || !r.entryPrice || !(atrValue > 0) || r.risk.slAtrMult <= 0) return;
+
+  const sl = stopPrice(r.entryPrice, atrValue, dir, r.risk.slAtrMult, r.decimals);
+  const tp = targetPrice(r.entryPrice, atrValue, dir, r.risk.tpAtrMult, r.decimals);
+
+  const results = await Promise.all(r.tickets.map((t) =>
+    orderModify({ id, ticket: t, stoploss: sl, takeprofit: tp ?? 0 })
+      .then(() => true)
+      .catch((e: any) => { console.error(`[Strat:srv] ${id} stop on ${t} failed:`, e?.message || e); return false; }),
+  ));
+
+  const ok = results.filter(Boolean).length;
+  r.currentStop = ok > 0 ? sl : null;
+  if (ok < r.tickets.length) {
+    // Say it loudly. An unprotected position is the thing this whole layer exists to prevent.
+    note(r, `WARNING: stop set on only ${ok}/${r.tickets.length} trades`);
+    console.error(`[Strat:srv] ${id} stop set on only ${ok}/${r.tickets.length} tickets`);
+  } else {
+    note(r, `stop ${sl}${tp !== null ? ` / target ${tp}` : ''}`);
+  }
+}
+
+/** Move the stop up behind a winning trade. Never backwards. */
+async function updateTrailing(id: string, r: Run, price: number, atrValue: number): Promise<void> {
+  if (!r.held || !r.tickets.length || !r.entryPrice || !(atrValue > 0)) return;
+  const next = trailTo(
+    r.entryPrice, price, atrValue, r.held, r.currentStop,
+    r.risk.trailStartAtr, r.risk.trailAtr, r.decimals,
+  );
+  if (next === null) return;
+
+  const results = await Promise.all(r.tickets.map((t) =>
+    orderModify({ id, ticket: t, stoploss: next, takeprofit: 0 })
+      .then(() => true)
+      .catch(() => false),
+  ));
+  if (results.some(Boolean)) {
+    r.currentStop = next;
+    note(r, `trailing stop -> ${next}`);
+  }
+}
+
+/**
+ * Account-level breakers. Returns a reason to halt, or null to carry on.
+ * Checked BEFORE any decision to open, so a breached cap can't be followed by
+ * one more trade.
+ */
+async function breachedLimits(id: string, r: Run): Promise<string | null> {
+  if (r.risk.maxDailyLoss <= 0 && r.risk.maxConsecutiveLosses <= 0) return null;
+  let closed: any[];
+  try {
+    const res = await getClosedOrders(id);
+    if (!Array.isArray(res)) return null; // can't read — don't halt on a bad read
+    closed = res;
+  } catch {
+    return null;
+  }
+
+  if (r.risk.maxDailyLoss > 0) {
+    const since = new Date();
+    since.setUTCHours(0, 0, 0, 0);
+    const realised = realisedSince(closed, since);
+    if (realised <= -Math.abs(r.risk.maxDailyLoss)) {
+      return `daily loss cap hit (${realised.toFixed(2)} today, limit ${r.risk.maxDailyLoss})`;
+    }
+  }
+
+  if (r.risk.maxConsecutiveLosses > 0) {
+    const streak = consecutiveLosses(closed);
+    if (streak >= r.risk.maxConsecutiveLosses) {
+      return `${streak} losing trades in a row (limit ${r.risk.maxConsecutiveLosses})`;
+    }
+  }
+  return null;
+}
+
+/** Flatten and stop trading until a human restarts it. */
+async function halt(id: string, r: Run, reason: string): Promise<void> {
+  const state = await closeUntilFlat(id, r);
+  r.halted = true;
+  r.haltReason = reason;
+  r.active = false;
+  if (r.timer) { clearTimeout(r.timer); r.timer = null; }
+  note(r, `HALTED — ${reason}${state === 'FLAT' ? '' : ` (could not confirm flat: ${state})`}`);
+  r.status = `halted — ${reason}`;
+  r.publicStatus = state === 'FLAT'
+    ? 'Stopped for today to protect your account.'
+    : 'Stopped to protect your account — check MetaTrader for open trades.';
+  console.error(`[Strat:srv] ${id} HALTED — ${reason}`);
+  persist(id, r);
 }
 
 /** Closed candles only — the newest bar is still forming and would flicker. */
@@ -309,6 +442,36 @@ async function evaluate(id: string): Promise<void> {
     const isNewBar = bar !== r.lastBar;
     r.lastBar = bar;
 
+    // Price precision from what the broker actually quotes — a stop with more
+    // decimals than the symbol allows gets rejected.
+    const last = candles[candles.length - 1];
+    r.decimals = decimalsOf(last?.closePrice, last?.openPrice, last?.highPrice, r.entryPrice);
+    const price = last?.closePrice ?? 0;
+    const atrValue = sig.atr ?? 0;
+
+    // ── Account breakers, checked BEFORE any decision to open ──────────────
+    const breach = await breachedLimits(id, r);
+    if (!r.active) return;
+    if (breach) { await halt(id, r, breach); return; }
+
+    // ── Weekend / rollover: be flat, stay flat ────────────────────────────
+    if (bar && isWeekendFlat(bar, r.risk.fridayFlatHourUtc)) {
+      if (r.held) {
+        const state = await closeUntilFlat(id, r);
+        note(r, `${bar}  weekend flat → ${state === 'FLAT' ? 'closed' : `CLOSE FAILED (${state})`}`);
+      }
+      r.status = 'flat for the weekend';
+      r.publicStatus = 'Paused until the market reopens.';
+      return;
+    }
+
+    // Trail a winner every cycle, not just on bar close — the stop should
+    // follow price, and price moves between bars.
+    if (r.held && r.tickets.length && r.risk.trailAtr > 0) {
+      await updateTrailing(id, r, price, atrValue);
+      if (!r.active) return;
+    }
+
     // Act only on a newly closed bar; between bars nothing can have changed.
     if (!isNewBar) {
       r.status = `${r.held ? `holding ${r.held} x${r.tickets.length}` : 'flat'} — ${sig.reason}`;
@@ -342,6 +505,7 @@ async function evaluate(id: string): Promise<void> {
         return;
       }
       await openDirection(id, r, target);
+      await applyProtection(id, r, target, atrValue);
       r.flatSince = Date.now();
       note(r, `${bar}  ${target} x${r.tickets.length} — indicator direction`);
       persist(id, r);
@@ -421,6 +585,7 @@ async function evaluate(id: string): Promise<void> {
     }
 
     await openDirection(id, r, sig.dir);
+    await applyProtection(id, r, sig.dir, atrValue);
     note(r, `${bar}  ${sig.dir} x${r.tickets.length} — ${sig.reason}`);
     r.status = `${sig.dir} x${r.tickets.length} — ${sig.reason}`;
   } catch (e: any) {
@@ -453,6 +618,13 @@ export interface StartParams {
   maxWaitMinutes?: number;
   flatWhenNoSignal?: boolean;
   reenterEachBar?: boolean;
+  slAtrMult?: number;
+  tpAtrMult?: number;
+  trailStartAtr?: number;
+  trailAtr?: number;
+  maxDailyLoss?: number;
+  maxConsecutiveLosses?: number;
+  fridayFlatHourUtc?: number;
   /** Stored so the run can revive its own broker session with the app closed. */
   creds?: SessionCreds;
 }
@@ -500,6 +672,22 @@ export function startStrategy(p: StartParams) {
     trades: 0,
     startedAt: Date.now(),
     history: [],
+    // Defaults are protective on purpose: a stop is always placed unless
+    // someone explicitly sets slAtrMult to 0.
+    risk: {
+      slAtrMult: p.slAtrMult ?? 1.5,
+      tpAtrMult: p.tpAtrMult ?? 0,
+      trailStartAtr: p.trailStartAtr ?? 1.0,
+      trailAtr: p.trailAtr ?? 1.0,
+      maxDailyLoss: Math.abs(p.maxDailyLoss ?? 0),
+      maxConsecutiveLosses: Math.max(0, p.maxConsecutiveLosses ?? 0),
+      fridayFlatHourUtc: Math.max(0, p.fridayFlatHourUtc ?? 0),
+    },
+    entryPrice: null,
+    currentStop: null,
+    decimals: 2,
+    halted: false,
+    haltReason: null,
     creds: p.creds && p.creds.server && p.creds.login && p.creds.password ? p.creds : null,
     lastSessionCheck: 0,
   };
@@ -579,6 +767,15 @@ export async function resumeStrategies(): Promise<void> {
         history: [],
         creds: c.creds || null,
         lastSessionCheck: 0,
+        risk: c.risk || {
+          slAtrMult: 1.5, tpAtrMult: 0, trailStartAtr: 1.0, trailAtr: 1.0,
+          maxDailyLoss: 0, maxConsecutiveLosses: 0, fridayFlatHourUtc: 0,
+        },
+        entryPrice: null,
+        currentStop: null,
+        decimals: 2,
+        halted: false,
+        haltReason: null,
       };
       runs.set(id, r);
       note(r, 'resumed after server restart');
@@ -606,6 +803,8 @@ export function getPublicStatus(id: string) {
     direction: r.held,
     openTrades: r.tickets.length,
     status: r.publicStatus,
+    protected: r.currentStop !== null,
+    halted: r.halted,
     tradesPlaced: r.trades,
     uptimeSec: Math.round((Date.now() - r.startedAt) / 1000),
   };
@@ -625,6 +824,11 @@ export function getStrategyStatus(id: string) {
     config: r.cfg,
     held: r.held,
     hedged: r.hedged,
+    risk: r.risk,
+    entryPrice: r.entryPrice,
+    currentStop: r.currentStop,
+    halted: r.halted,
+    haltReason: r.haltReason,
     openTickets: r.tickets.length,
     status: r.status,
     trades: r.trades,

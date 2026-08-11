@@ -33,6 +33,15 @@ export async function POST(request: Request): Promise<Response> {
       evalSeconds: num(body?.evalSeconds),
       alwaysIn: body?.alwaysIn,
       maxWaitMinutes: num(body?.maxWaitMinutes),
+      // Risk. Omit and protective defaults apply — a stop is always placed
+      // unless slAtrMult is explicitly set to 0.
+      slAtrMult: num(body?.slAtrMult),
+      tpAtrMult: num(body?.tpAtrMult),
+      trailStartAtr: num(body?.trailStartAtr),
+      trailAtr: num(body?.trailAtr),
+      maxDailyLoss: num(body?.maxDailyLoss),
+      maxConsecutiveLosses: num(body?.maxConsecutiveLosses),
+      fridayFlatHourUtc: num(body?.fridayFlatHourUtc),
       flatWhenNoSignal: body?.flatWhenNoSignal,
       reenterEachBar: body?.reenterEachBar,
       // Optional. Without these the run cannot revive a dead broker session on
