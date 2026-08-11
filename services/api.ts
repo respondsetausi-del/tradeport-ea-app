@@ -303,6 +303,40 @@ class ApiService {
     return data;
   }
 
+  /**
+   * Server-side strategy engine — the default robot. Direction comes from the
+   * market rather than a timer, and the loop lives on the server so it keeps
+   * trading with the app closed.
+   *
+   * Credentials are sent so the run can revive its own broker session while
+   * every device is asleep; without them an expired token halts it until
+   * someone reopens the app.
+   */
+  async startStrategy(
+    uuid: string,
+    opts: { symbol: string; volume: number; count: number; comment?: string; server?: string; login?: string; password?: string },
+  ): Promise<any> {
+    const res = await fetch(`${BASE_URL}/api/mt5/strategy/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uuid, ...opts }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Failed to start');
+    return data;
+  }
+
+  async stopStrategy(uuid: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/api/mt5/strategy/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uuid }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Failed to stop');
+    return data;
+  }
+
+  /** Public view only — reveals nothing about how direction is decided. */
+  async getStrategyStatus(uuid: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/api/mt5/strategy/status?id=${encodeURIComponent(uuid)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Failed to read status');
+    return data;
+  }
+
   async stopBatch(uuid: string): Promise<any> {
     const res = await fetch(`${BASE_URL}/api/mt5/batch/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uuid }) });
     const data = await res.json();

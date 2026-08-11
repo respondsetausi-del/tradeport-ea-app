@@ -14,12 +14,12 @@ import { useSidebar } from '@/providers/sidebar-provider';
 import type { EA } from '@/providers/app-provider';
 
 export default function HomeScreen() {
-  const { eas, isFirstTime, setIsFirstTime, removeEA, isBotActive, setBotActive, setActiveEA, user, mt5Account, mt4Account, activateMT5Symbol, deactivateMT5Symbol, mt5Symbols, ensureMT5Connected } = useApp();
+  const { eas, isFirstTime, setIsFirstTime, removeEA, isBotActive, setBotActive, setActiveEA, user, mt5Account, mt4Account, deactivateMT5Symbol, mt5Symbols, ensureMT5Connected } = useApp();
   const [scannerGateMsg, setScannerGateMsg] = useState<string | null>(null);
   const [quickStartOpen, setQuickStartOpen] = useState<boolean>(false);
 
-  // START → quick-config popup (every time) → confirm → save symbol, execute
-  // instantly and begin the 10-minute flip loop. STOP → close + halt.
+  // START → quick-config popup (every time) → confirm → hand the symbol to the
+  // server-side strategy engine. STOP → close + halt.
   const handleQuickStartConfirm = useCallback(async (cfg: QuickConfig) => {
     setQuickStartOpen(false);
     const symbol = cfg.symbol.trim();
@@ -27,22 +27,40 @@ export default function HomeScreen() {
     const count = Math.max(1, Math.min(100, parseInt(cfg.numberOfTrades, 10) || 1));
     let uuid = mt5Account?.uuid;
     if (!symbol || !uuid) return;
+    // Deactivate every symbol so the WebView terminal places NOTHING.
+    //
+    // This used to also call activateMT5Symbol({..., direction: 'BOTH'}), which
+    // made one press of START run two independent traders on the same account:
+    // the server-side engine here, and the WebView driving the broker's web
+    // terminal by simulated clicks. The WebView trickles its orders out one at
+    // a time over a minute or more, so its trades landed after the engine had
+    // already taken the opposite side — the Buy and Sell open together that was
+    // reported. Trading belongs to the server engine alone.
     try { (mt5Symbols || []).forEach((m) => { try { deactivateMT5Symbol(m.symbol); } catch {} }); } catch {}
-    try { activateMT5Symbol({ symbol, lotSize: String(lot), numberOfTrades: String(count), direction: 'BOTH' }); } catch {}
     setBotActive(true);
     // Verify the broker still holds this session (and silently reconnect if not)
-    // before handing the UUID to the server-side batch engine.
+    // before handing the UUID to the server-side engine.
     const fresh = await ensureMT5Connected();
     if (fresh) uuid = fresh;
-    try { await apiService.startBatch(uuid, { symbol, volume: lot, count, intervalMinutes: 10, comment: (eas?.[0]?.name || 'Robot') }); }
-    catch (e: any) { console.error('[quickstart] startBatch error:', e?.message || e); }
-  }, [mt5Account?.uuid, mt5Symbols, activateMT5Symbol, deactivateMT5Symbol, setBotActive, eas, ensureMT5Connected]);
+    try {
+      await apiService.startStrategy(uuid, {
+        symbol, volume: lot, count,
+        comment: (eas?.[0]?.name || 'Robot'),
+        server: mt5Account?.server,
+        login: mt5Account?.login,
+        password: mt5Account?.password,
+      });
+    } catch (e: any) {
+      console.error('[quickstart] startStrategy error:', e?.message || e);
+      setBotActive(false);
+    }
+  }, [mt5Account?.uuid, mt5Account?.server, mt5Account?.login, mt5Account?.password, mt5Symbols, deactivateMT5Symbol, setBotActive, eas, ensureMT5Connected]);
 
   const handleToggleBot = useCallback(async () => {
     if (isBotActive) {
       setBotActive(false);
       const uuid = mt5Account?.uuid;
-      if (uuid) { try { await apiService.stopBatch(uuid); } catch (e: any) { console.error('[stop] stopBatch error:', e?.message || e); } }
+      if (uuid) { try { await apiService.stopStrategy(uuid); } catch (e: any) { console.error('[stop] stopStrategy error:', e?.message || e); } }
       return;
     }
     if (!mt5Account?.uuid) { setScannerGateMsg('Connect your MT5 account before starting.'); return; }
