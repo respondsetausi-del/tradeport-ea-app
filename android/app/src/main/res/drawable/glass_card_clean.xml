@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Clean glass card - minimal, premium, no visual noise -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Very subtle outer glow - barely visible -->
+    <item
+        android:bottom="-2dp"
+        android:left="-2dp"
+        android:right="-2dp"
+        android:top="-2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="100%p"
+                android:centerX="0.5"
+                android:centerY="1.0"
+                android:startColor="#15990000"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+    <!-- Main glass surface - clean dark -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <solid android:color="#1A1A1A" />
+        </shape>
+    </item>
+    
+</layer-list>

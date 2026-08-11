@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Clean red button - soft edges, premium feel -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    
+    <corners android:radius="16dp" />
+    <solid android:color="#CC0000" />
+    
+</shape>

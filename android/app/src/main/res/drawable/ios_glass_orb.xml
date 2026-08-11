@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS Glass orb - floating button style, soft ambient halo -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Soft ambient red halo - barely visible -->
+    <item
+        android:left="-6dp"
+        android:top="-6dp"
+        android:right="-6dp"
+        android:bottom="-6dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="60%p"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#20880000"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+</layer-list>

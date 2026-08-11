@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".ui.settings.SettingsFragment">
+
+    <LinearLayout
+        android:id="@+id/settings_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/ios26_crimson_atmosphere"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/settings_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textColor="@color/white"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:textAlignment="center" />
+
+        <!-- Appearance Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="APPEARANCE"
+            android:textColor="@color/text_meta"
+            android:textSize="11sp"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp"
+            android:textStyle="bold" />
+
+        <!-- Video Background Selector Card -->
+        <LinearLayout
+            android:id="@+id/video_bg_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Video Background"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select a looping video to play behind all screens"
+                android:textColor="@color/text_meta"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
+
+            <Spinner
+                android:id="@+id/spinner_video_background"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/glass_input_capsule"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:popupBackground="#E6121212" />
+
+            <Button
+                android:id="@+id/btn_choose_video"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/glass_input_capsule"
+                android:text="Choose Video"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- Robot Image Shape Card -->
+        <LinearLayout
+            android:id="@+id/robot_shape_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Robot Image Shape"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Change the shape of robot logos on the home screen"
+                android:textColor="@color/text_meta"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
+
+            <Spinner
+                android:id="@+id/spinner_robot_shape"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/glass_input_capsule"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:popupBackground="#E6121212" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Glass card with pure black base - image fades INTO this exactly -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Solid PURE BLACK base — matches overlay fade end color exactly -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF000000" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+    <!-- Very subtle glass sheen -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#06FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+    <!-- Subtle outer border -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="#12FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+</layer-list>

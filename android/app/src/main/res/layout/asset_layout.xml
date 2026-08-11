@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:clipToPadding="false"
+    android:clipChildren="false">
+
+    <!-- Glass Card for asset list item - glow applied directly -->
+    <FrameLayout
+        android:id="@+id/asset_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:clipToPadding="false"
+        android:clipChildren="false"
+        android:layout_margin="4dp"
+        android:foreground="?attr/selectableItemBackground">
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_solid_panel"
+                android:padding="12dp"
+                android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_arrow_circle_right_24"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical"
+                android:layout_gravity="center_vertical">
+                <TextView
+                    android:id="@+id/symbolname"
+                    android:layout_width="wrap_content"
+                    android:text="Step Index"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:textSize="16dp"
+                    android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/lot_txt"
+                        android:layout_width="wrap_content"
+                        android:text="Lot Size : 0.01"
+                        android:textColor="@color/white"
+                        android:textSize="14dp"
+                        android:layout_height="wrap_content"/>
+                    <TextView
+                        android:id="@+id/actxt"
+                        android:layout_marginStart="20dp"
+                        android:layout_width="wrap_content"
+                        android:text="Action : BOTH"
+                        android:textColor="@color/white"
+                        android:textSize="14dp"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+    </FrameLayout>
+</RelativeLayout>

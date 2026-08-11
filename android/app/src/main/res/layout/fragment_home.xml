@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ios26_crimson_atmosphere"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Main Bot Card Section -->
+            <RelativeLayout
+                android:id="@+id/selected_bot_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:visibility="visible"
+                android:clipToPadding="false"
+                android:clipChildren="false">
+
+                <!-- Main image card with neon glow wrapper -->
+                <FrameLayout
+                    android:id="@+id/main_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:clipToPadding="false"
+                    android:clipChildren="false">
+
+                    <!-- CardView (not MaterialCardView) — clips children via canvas.clipPath, works in software rendering -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/hero_card"
+                        android:layout_width="match_parent"
+                        android:layout_height="340dp"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#181818">
+
+                        <FrameLayout
+                            android:id="@+id/main_card_content"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
+
+                            <ImageView
+                                android:id="@+id/logo_img"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/ic_baseline_arrow_circle_right_24" />
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/ios26_hero_overlay" />
+
+                            <!-- Bot Name and Description - at bottom over the image -->
+                            <LinearLayout
+                                android:id="@+id/bot_info_container"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom"
+                                android:gravity="center_horizontal"
+                                android:orientation="vertical"
+                                android:paddingHorizontal="20dp"
+                                android:paddingBottom="16dp">
+
+                                <TextView
+                                    android:id="@+id/bot_name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/speed_max_lethal_2"
+                                    android:textAlignment="center"
+                                    android:textColor="@color/white"
+                                    android:textSize="26sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/owner_name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text="@string/bot_subtitle"
+                                    android:textColor="@color/grey_muted"
+                                    android:textSize="14sp" />
+
+                                <TextView
+                                    android:id="@+id/note"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="8dp"
+                                    android:gravity="center"
+                                    android:paddingHorizontal="16dp"
+                                    android:text=""
+                                    android:textColor="#cc0000"
+                                    android:textSize="12sp"
+                                    android:textStyle="italic"
+                                    android:visibility="gone" />
+                            </LinearLayout>
+
+                            <!-- Delete EA Button (top-right corner) -->
+                            <LinearLayout
+                                android:id="@+id/delete_ea"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="top|end"
+                                android:layout_margin="12dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="4dp">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:src="@drawable/ic_baseline_delete_forever_24"
+                                    app:tint="#666666" />
+                            </LinearLayout>
+
+                        </FrameLayout>
+                    </androidx.cardview.widget.CardView>
+                </FrameLayout>
+
+                <!-- Trading Control Panel - Separate card below image -->
+                <FrameLayout
+                    android:id="@+id/controls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/main_card"
+                    android:layout_marginTop="8dp"
+                    android:padding="12dp"
+                    android:clipToPadding="false"
+                    android:clipChildren="false">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_glass_solid_panel"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingVertical="10dp"
+                        android:paddingHorizontal="8dp">
+
+                        <!-- PAIRS Button (gotoasset) -->
+                        <LinearLayout
+                            android:id="@+id/gotoasset"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="4dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_chart_line"
+                                app:tint="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="@string/btn_pairs"
+                                android:textAllCaps="true"
+                                android:textColor="@color/grey_muted"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- TRADE Button (Center - Primary Action) -->
+                        <FrameLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp">
+
+                            <!-- Stop Button (shown when trading) -->
+                            <LinearLayout
+                                android:id="@+id/stopButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:visibility="gone">
+
+                                <FrameLayout
+                                    android:id="@+id/stopButtonGlow"
+                                    android:layout_width="56dp"
+                                    android:layout_height="56dp"
+                                    android:background="@drawable/ios26_trade_ring_glow">
+
+                                    <ImageView
+                                        android:layout_width="28dp"
+                                        android:layout_height="28dp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_stop_circle_outline"
+                                        app:tint="@color/white" />
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="STOP"
+                                    android:textAllCaps="true"
+                                    android:textColor="@color/white"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Start/Trade Button (shown when not trading) -->
+                            <LinearLayout
+                                android:id="@+id/startButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:visibility="gone">
+
+                                <FrameLayout
+                                    android:id="@+id/tradeButtonGlow"
+                                    android:layout_width="56dp"
+                                    android:layout_height="56dp"
+                                    android:background="@drawable/ios26_trade_ring_glow">
+
+                                    <ImageView
+                                        android:layout_width="28dp"
+                                        android:layout_height="28dp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_play_circle"
+                                        app:tint="@color/white" />
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="@string/btn_trade"
+                                    android:textAllCaps="true"
+                                    android:textColor="@color/white"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </FrameLayout>
+
+                        <!-- INFO Button -->
+                        <LinearLayout
+                            android:id="@+id/bot_info"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="4dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_info_outline"
+                                app:tint="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="@string/btn_info"
+                                android:textAllCaps="true"
+                                android:textColor="@color/grey_muted"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Powered By Text -->
+                <TextView
+                    android:id="@+id/powered_by"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/controls"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:text="@string/powered_by"
+                    android:textColor="@color/grey_muted"
+                    android:textSize="12sp"
+                    android:shadowColor="#40BB86FC"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="8" />
+
+            </RelativeLayout>
+
+            <!-- Robot List Section -->
+            <RelativeLayout
+                android:id="@+id/bots_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:paddingHorizontal="16dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <TextView
+                    android:id="@+id/label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/robot_list"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/bots_list_recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/label"
+                    android:nestedScrollingEnabled="false"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    tools:listitem="@layout/robots_layout" />
+
+                <!-- Trade Port Scanner Button -->
+                <FrameLayout
+                    android:id="@+id/scanner_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/bots_list_recycler_view"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="0dp"
+                    android:padding="12dp"
+                    android:clipToPadding="false"
+                    android:clipChildren="false"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_glass_button_accent"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingVertical="16dp"
+                        android:paddingHorizontal="20dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_baseline_auto_graph_24"
+                            app:tint="@color/white" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="@string/trade_port_scanner"
+                            android:textColor="@color/white"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Add EA Button - with glow like robot list card -->
+                <FrameLayout
+                    android:id="@+id/add_bot_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/scanner_btn"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:padding="12dp"
+                    android:clipToPadding="false"
+                    android:clipChildren="false"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_glass_button_accent"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingVertical="16dp"
+                        android:paddingHorizontal="20dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_round_add_circle_24"
+                            app:tint="@color/white" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="@string/add_a_new_ea"
+                            android:textColor="@color/white"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </FrameLayout>
+
+            </RelativeLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</RelativeLayout>

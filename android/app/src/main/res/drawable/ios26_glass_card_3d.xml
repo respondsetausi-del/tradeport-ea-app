@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Glass Card with 3D Internal Lighting - Refined -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Outer crimson edge glow - soft, diffused -->
+    <item
+        android:top="-4dp"
+        android:left="-4dp"
+        android:right="-4dp"
+        android:bottom="-4dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:centerX="50%"
+                android:centerY="100%"
+                android:startColor="#35990000"
+                android:endColor="#00000000" />
+            <corners android:radius="32dp" />
+        </shape>
+    </item>
+    
+    <!-- Soft light falloff underneath -->
+    <item
+        android:top="4dp"
+        android:left="3dp"
+        android:right="3dp"
+        android:bottom="-3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#10000000" />
+            <corners android:radius="30dp" />
+        </shape>
+    </item>
+    
+    <!-- Glass base - thick, soft feel -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#CC1A1A1A" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+    <!-- Internal 3D lighting gradient - stronger top light -->
+    <item
+        android:top="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#22FFFFFF"
+                android:centerColor="#0AFFFFFF"
+                android:endColor="#00000000" />
+            <corners android:radius="27dp" />
+        </shape>
+    </item>
+    
+    <!-- Subtle edge light catch -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="0.5dp"
+                android:color="#12FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+</layer-list>

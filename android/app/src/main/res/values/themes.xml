@@ -1,0 +1,272 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.RoboTrader" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/black</item>
+        <item name="colorPrimaryVariant">@color/white</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondaryVariant">@color/blue_light</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">@color/blue_dark</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <!-- Customize your theme here. -->
+
+        <!--my own colors -->
+        <item name="backgroundColor">@color/grey_light</item>
+        <item name="backgroundColorMuted">@color/white</item>
+        <item name="textColor">@color/red</item>
+        <item name="textColorMuted">@color/blue_dark</item>
+
+        <item name="android:windowActivityTransitions">true</item>
+        <item name="android:windowEnterTransition">@transition/trans_anim</item>
+        <item name="android:windowExitTransition">@transition/trans_anim</item>
+        <item name = "android:windowBackground">@color/blue_dark</item>
+
+    </style>
+    <style name="BottomNavigationViewTextStyle">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+
+    <style name="TransparentTextInputStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <!-- Transparent background -->
+        <item name="boxBackgroundColor">@android:color/transparent</item>
+
+        <!-- Normal state stroke color — light for dark backgrounds -->
+        <item name="boxStrokeColor">@color/glass_border</item>
+
+        <!-- Error state stroke color -->
+        <item name="boxStrokeErrorColor">@color/red</item>
+
+        <!-- Hint styling -->
+        <item name="hintTextAppearance">@style/HintTextAppearance</item>
+
+        <!-- Text & hint colors — light for dark backgrounds -->
+        <item name="android:textColorHint">@color/glass_text_muted</item>
+        <item name="android:textColor">@color/white</item>
+
+        <!-- Stroke widths -->
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+
+        <!-- Rounded corners -->
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+    </style>
+
+    <style name="HintTextAppearance" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">@color/glass_text_secondary</item>
+    </style>
+
+    <!-- Style for MetaTrader page inputs -->
+    <style name="TransparentTextInputStyle1" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <!-- Transparent background -->
+        <item name="boxBackgroundColor">@android:color/transparent</item>
+
+        <!-- Normal state stroke color -->
+        <item name="boxStrokeColor">@color/grey_muted</item>
+
+        <!-- Error state stroke color (this makes red outline appear on error) -->
+        <item name="boxStrokeErrorColor">@color/red</item>
+
+        <!-- Hint styling -->
+        <item name="hintTextAppearance">@style/HintTextAppearance1</item>
+
+        <!-- Text & hint colors -->
+        <item name="android:textColorHint">@color/grey_muted</item>
+        <item name="android:textColor">@color/white</item>
+
+        <!-- Stroke widths -->
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+    </style>
+
+    <style name="HintTextAppearance1" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">@color/grey_muted</item>
+    </style>
+
+    <!-- Liquid Glass Input Style -->
+    <style name="GlassTextInputStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">@android:color/transparent</item>
+        <item name="boxStrokeColor">@color/glass_border</item>
+        <item name="boxStrokeErrorColor">@color/red</item>
+        <item name="hintTextAppearance">@style/GlassHintTextAppearance</item>
+        <item name="android:textColorHint">@color/glass_text_muted</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxCornerRadiusTopStart">16dp</item>
+        <item name="boxCornerRadiusTopEnd">16dp</item>
+        <item name="boxCornerRadiusBottomStart">16dp</item>
+        <item name="boxCornerRadiusBottomEnd">16dp</item>
+    </style>
+
+    <style name="GlassHintTextAppearance" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">@color/glass_text_secondary</item>
+    </style>
+
+    <!-- iOS 26 Glass Dialog Theme -->
+    <style name="iOS26GlassDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@drawable/ios26_glass_dialog</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.7</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowAnimationStyle">@style/iOS26DialogAnimation</item>
+        <item name="colorSurface">@android:color/transparent</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="iOS26DialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/dialog_fade_in</item>
+        <item name="android:windowExitAnimation">@anim/dialog_fade_out</item>
+    </style>
+
+    <!-- iOS 26 Alert Dialog Style - Refined, No White Ears -->
+    <style name="iOS26AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimAmount">0.65</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/iOS26DialogTitle</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/iOS26DialogBody</item>
+        <item name="buttonBarPositiveButtonStyle">@style/iOS26DialogButtonAccent</item>
+        <item name="buttonBarNegativeButtonStyle">@style/iOS26DialogButtonNeutral</item>
+        <item name="shapeAppearanceOverlay">@style/iOS26DialogShape</item>
+        <item name="dialogCornerRadius">22dp</item>
+    </style>
+
+    <style name="iOS26DialogShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">22dp</item>
+    </style>
+
+    <style name="iOS26DialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/text_title</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <style name="iOS26DialogBody" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+        <item name="android:paddingTop">4dp</item>
+    </style>
+
+    <style name="iOS26DialogButtonAccent" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/text_accent</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="android:minWidth">64dp</item>
+    </style>
+
+    <style name="iOS26DialogButtonNeutral" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/dialog_btn_neutral</item>
+        <item name="android:textSize">15sp</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="android:minWidth">64dp</item>
+    </style>
+
+    <!-- iOS 26 Typography Styles -->
+    <style name="iOS26TextTitle">
+        <item name="android:textColor">@color/text_title</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
+    <style name="iOS26TextHeadline">
+        <item name="android:textColor">@color/text_title</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="iOS26TextSecondary">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="iOS26TextMeta">
+        <item name="android:textColor">@color/text_meta</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- GLASSMORPHISM / LIQUID GLASS STYLES                         -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    
+    <!-- Primary Glass Card Style -->
+    <style name="GlassCard">
+        <item name="android:background">@drawable/bg_glass_card</item>
+        <item name="android:elevation">8dp</item>
+        <item name="android:translationZ">4dp</item>
+        <item name="android:clipToOutline">true</item>
+    </style>
+    
+    <!-- Inner Glass Card - For nested panels like PAIRS/STOP/INFO bar -->
+    <style name="GlassCard.Inner">
+        <item name="android:background">@drawable/bg_glass_card_inner</item>
+        <item name="android:elevation">2dp</item>
+        <item name="android:translationZ">1dp</item>
+    </style>
+    
+    <!-- Elevated Glass Card - Hero cards with more prominence -->
+    <style name="GlassCard.Elevated">
+        <item name="android:background">@drawable/bg_glass_card_elevated</item>
+        <item name="android:elevation">12dp</item>
+        <item name="android:translationZ">6dp</item>
+    </style>
+    
+    <!-- Glass Card Text Styles -->
+    <style name="GlassText">
+        <item name="android:textColor">@color/glass_text_85</item>
+    </style>
+    
+    <style name="GlassText.Primary">
+        <item name="android:textSize">16sp</item>
+    </style>
+    
+    <style name="GlassText.Title">
+        <item name="android:textColor">@color/glass_text_white</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <style name="GlassText.Secondary">
+        <item name="android:textColor">@color/glass_text_70</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+    
+    <style name="GlassText.Meta">
+        <item name="android:textColor">@color/glass_text_50</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- Rounded corners for ShapeableImageView - all corners -->
+    <style name="RoundedImageTop" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">24dp</item>
+        <item name="cornerSizeBottomRight">24dp</item>
+    </style>
+
+    <!-- Rounded corners for robot logo (24dp rounded square) -->
+    <style name="RoundedImage24" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
+    </style>
+
+    <!-- Full circle for robot logo -->
+    <style name="CircleImage" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+</resources>

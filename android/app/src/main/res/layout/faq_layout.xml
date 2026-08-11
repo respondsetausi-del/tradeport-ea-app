@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardUseCompatPadding="true"
+        app:cardCornerRadius="20dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp"
+        android:foreground="?attr/selectableItemBackground">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ios26_glass_item_3d"
+            android:padding="14dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical"
+                android:layout_marginEnd="30dp"
+                android:layout_gravity="center_vertical">
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="wrap_content"
+                    android:text="Why is my app crashing every time i press start?"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:textSize="16dp"
+                    android:gravity="center"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:visibility="gone"
+                    android:id="@+id/body"
+                    android:layout_width="wrap_content"
+                    android:text="There are Two possibilities, it is either you need to what so or what so"
+                    android:textColor="@color/grey_muted"
+                    android:textSize="16dp"
+                    android:padding="10dp"
+                    android:background="?attr/colorPrimary"
+                    android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+
+            <ImageView
+                android:visibility="visible"
+                android:layout_alignParentEnd="true"
+                android:layout_marginStart="10dp"
+                android:id="@+id/down_arrow"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_baseline_keyboard_arrow_down_24"/>
+
+            <ImageView
+                android:visibility="gone"
+                android:layout_alignParentEnd="true"
+                android:layout_marginStart="10dp"
+                android:id="@+id/up_arrow"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_baseline_keyboard_arrow_up_24"/>
+
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+</RelativeLayout>

@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    tools:context=".ui.metatrader.MetatraderFragment"
+    android:background="@drawable/ios26_crimson_atmosphere"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+
+    <ImageButton
+        android:id="@+id/backbtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_baseline_arrow_back_24"
+        android:backgroundTint="@android:color/transparent"
+        android:contentDescription="Back to home"
+        card_view:tint="@color/white" />
+
+    <LinearLayout
+        android:id="@+id/TopBtns"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:layout_margin="25dp"
+        >
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+
+            android:layout_gravity="center_horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/mt5_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp" android:background="@drawable/gradient_background"
+                android:text="MT5 ACCOUNT"
+                android:visibility="gone"
+                />
+
+            <View
+                android:id="@+id/v1"
+                android:layout_width="100dp"
+                android:layout_height="2dp"
+                android:layout_below="@+id/mt5_btn"
+                android:foregroundGravity="center"
+                android:background="?attr/colorPrimary" />
+
+        </RelativeLayout>
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/mt4_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
+                android:background="@drawable/gradient_background"
+                android:text="MT4 ACCOUNT"
+                android:visibility="gone"
+                />
+
+            <View
+                android:id="@+id/v2"
+                android:layout_width="100dp"
+                android:layout_height="2dp"
+                android:layout_below="@+id/mt4_btn"
+                android:layout_gravity="center_horizontal"
+                android:layout_centerInParent="true"
+                android:background="?attr/colorPrimary"
+                android:visibility="gone"/>
+
+        </RelativeLayout>
+
+    </LinearLayout>
+
+    <!-- Glow wrapper for MT5 card -->
+    <FrameLayout
+        android:id="@+id/mt5_card_glow_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/TopBtns"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="15dp"
+        android:padding="12dp"
+        android:clipToPadding="false"
+        android:clipChildren="false">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="0dp"
+            android:visibility="visible"
+            app:cardBackgroundColor="@color/dark_surface"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/ios26_glass_card_3d"
+                android:padding="24dp"
+                android:visibility="visible">
+
+
+                <ImageView
+                    android:id="@+id/logo_img"
+                    android:layout_marginTop="0dp"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@mipmap/ic_launcher_foreground" />
+
+
+                <TextView
+                    android:id="@+id/top_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/logo_img"
+                    android:layout_marginTop="8dp"
+                    android:padding="0dp"
+                    android:text="MT5 LOGIN DETAILS"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/outlined_text_input_layout"
+                    style="@style/TransparentTextInputStyle1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/top_text"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:hint="Login"
+                    app:boxCornerRadiusBottomStart="@dimen/cardview_default_radius">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/outlined_edit_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/grey_muted"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/outlined_text_input_layout_2"
+                    style="@style/TransparentTextInputStyle1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/outlined_text_input_layout"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:hint="Password"
+                    app:endIconMode="password_toggle">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/outlined_edit_text_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/grey_muted"
+                        android:maxLines="1" />
+
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/outlined_text_input_layout_3"
+                    style="@style/TransparentTextInputStyle1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/outlined_text_input_layout_2"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:hint="Server">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/outlined_edit_text_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/grey_muted"
+                        android:maxLines="1"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/submitMt5"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_below="@+id/outlined_text_input_layout_3"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/ios26_glass_button"
+                    android:text="Link MT5 Account"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/submitMt4"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_below="@+id/outlined_text_input_layout_3"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/ios26_glass_button"
+                    android:text="Link MT4 Account"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/balance_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/submitMt5"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:textColor="@color/green"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:text="Balance: 10 000.00 USD" />
+
+                <View
+                    android:id="@+id/circleView"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/circle_background_red" />
+
+                <TextView
+                    android:id="@+id/accountConnectedText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="35dp"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginTop="5dp"
+                    android:text="ACCOUNT CONNECTED"
+                    android:textColor="@color/green"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+
+            </RelativeLayout>
+        </androidx.cardview.widget.CardView>
+
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="260dp"
+            android:visibility="invisible"
+            tools:ignore="WebViewLayout" />
+    </FrameLayout>
+
+
+</RelativeLayout>

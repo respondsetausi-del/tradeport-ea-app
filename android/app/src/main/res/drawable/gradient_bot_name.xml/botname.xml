@@ -1,0 +1,13 @@
+<!-- res/drawable/gradient_bot_name.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:startColor="@color/black"
+        android:endColor="@color/endColor"
+        android:angle="45"/>
+    <corners android:radius="8dp"/>
+    <padding
+        android:left="10dp"
+        android:right="10dp"
+        android:top="5dp"
+        android:bottom="5dp"/>
+</shape>

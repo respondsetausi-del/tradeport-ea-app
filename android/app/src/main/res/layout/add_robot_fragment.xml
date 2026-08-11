@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ios26_crimson_atmosphere"
+    android:padding="24dp"
+    tools:context=".ui.home.addrobot.AddRobotFragment"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <ImageButton
+        android:id="@+id/backbtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_baseline_arrow_back_24"
+        android:backgroundTint="@android:color/transparent"
+        card_view:tint="@color/white"/>
+
+    <!-- Glow wrapper for the glass container -->
+    <FrameLayout
+        android:id="@+id/card_glow_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/backbtn"
+        android:layout_marginTop="28dp"
+        android:padding="12dp"
+        android:clipToPadding="false"
+        android:clipChildren="false">
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/glass_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            card_view:cardBackgroundColor="@color/dark_surface"
+            card_view:cardCornerRadius="24dp"
+            card_view:cardElevation="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/ios26_glass_card_3d"
+                android:padding="24dp">
+
+                <TextView
+                    android:id="@+id/top_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="License Key"
+                    android:textSize="24sp"
+                    android:textColor="@color/white"
+                    android:textAlignment="center"
+                    android:textStyle="bold"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="0"
+                    android:shadowDy="2"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/note_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:padding="8dp"
+                    android:text="@string/note_text"
+                    android:textAlignment="center"
+                    android:textColor="@color/glass_text_secondary"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/outlined_text_input_layout"
+                    style="@style/GlassTextInputStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:hint="Enter the key here">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/outlined_edit_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="1"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/glass_text_muted"
+                        android:inputType="text"/>
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/submit"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="24dp"
+                    android:background="@drawable/ios26_glass_button"
+                    android:text="Authenticate"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+
+</RelativeLayout>

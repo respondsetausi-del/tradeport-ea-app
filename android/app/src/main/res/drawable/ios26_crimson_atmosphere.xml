@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Crimson Atmosphere - Foundational gradient layer -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Base: Deep black to crimson to black vertical gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#000000"
+                android:centerColor="#1A0808"
+                android:endColor="#0D0404" />
+        </shape>
+    </item>
+    
+    <!-- Mid-layer: Crimson haze concentrated in center-bottom -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="600dp"
+                android:centerX="50%"
+                android:centerY="70%"
+                android:startColor="#25990000"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+    <!-- Ambient crimson diffusion - softer, wider spread -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="800dp"
+                android:centerX="50%"
+                android:centerY="90%"
+                android:startColor="#18880000"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+</layer-list>

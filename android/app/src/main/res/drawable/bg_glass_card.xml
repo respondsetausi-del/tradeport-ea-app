@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primary glass card with liquid glass effect -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Base fill: 8% white on dark -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#14FFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+    <!-- Top highlight: simulates light hitting glass from above -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#18FFFFFF"
+                android:centerColor="#08FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:centerY="0.3" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+    <!-- Border: subtle white stroke -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="#1AFFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+</layer-list>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Large ambient red underglow - connects with robot image glow -->
+    <item
+        android:left="-12dp"
+        android:top="-20dp"
+        android:right="-12dp"
+        android:bottom="-8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#0C990000" />
+            <corners android:radius="40dp" />
+        </shape>
+    </item>
+    <!-- Secondary glow layer -->
+    <item
+        android:left="-6dp"
+        android:top="-10dp"
+        android:right="-6dp"
+        android:bottom="-4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#08660000" />
+            <corners android:radius="34dp" />
+        </shape>
+    </item>
+    <!-- Panel surface - matte dark -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#1a1a1a" />
+            <corners android:radius="28dp" />
+            <stroke
+                android:width="1dp"
+                android:color="#15990000" />
+        </shape>
+    </item>
+</layer-list>

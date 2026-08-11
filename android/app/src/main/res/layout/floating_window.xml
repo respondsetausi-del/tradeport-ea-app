@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/floating_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/bg_glass_floating_expanded"
+    android:clickable="true"
+    android:focusable="true"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Drag handle pill -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_drag_pill" />
+
+    <!-- Main Content Layout -->
+    <LinearLayout
+        android:id="@+id/mainContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:gravity="center"
+        android:orientation="vertical">
+
+            <RelativeLayout
+                android:id="@+id/selected_bot_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="0dp"
+                android:visibility="visible">
+
+                <!-- CardView with ImageView -->
+
+                <!-- Glass orb with glow ring -->
+                <FrameLayout
+                    android:id="@+id/orb_glow_container"
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:layout_centerInParent="true"
+                    android:background="@drawable/bg_orb_glow_ring">
+                    
+                    <!-- Perfectly round glass orb with robot image -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="center"
+                        app:cardCornerRadius="36dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent">
+
+                        <!-- Robot image fills the entire circle -->
+                        <ImageView
+                            android:id="@+id/logo_img"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_baseline_arrow_circle_right_24"
+                            android:background="@color/dark_surface" />
+
+                    </androidx.cardview.widget.CardView>
+                </FrameLayout>
+
+            </RelativeLayout>
+
+            <!-- Bot Name at the Top -->
+
+            <!-- CardView with ImageView -->
+
+
+            <!-- Button Layout -->
+            <TextView
+                android:id="@+id/bot_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Speed Max LETHAL 2"
+                android:textAlignment="center"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:letterSpacing="0.02"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/owner_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="12dp"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:text="Fundamental Pip Lord"
+                android:textColor="#80FFFFFF"
+                android:textSize="13sp"
+                android:letterSpacing="0.01" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@android:color/transparent"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <!-- STATUS Button -->
+                <Button
+                    android:id="@+id/statusButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/selector_glass_float_button"
+                    android:drawableLeft="@drawable/ic_baseline_blur_on_24"
+                    android:drawablePadding="6dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:text="STATUS"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#DDFFFFFF"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04"
+                    android:textAllCaps="true" />
+
+                <!-- Close Button -->
+                <Button
+                    android:id="@+id/closeButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/selector_glass_float_button"
+                    android:drawableLeft="@drawable/ic_baseline_cancel_24"
+                    android:drawablePadding="6dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:text="CLOSE"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#DDFFFFFF"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.04"
+                    android:textAllCaps="true" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Status Buttons Layout -->
+        <LinearLayout
+            android:id="@+id/statusbuttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@android:color/transparent"
+            >
+            <Button
+                android:id="@+id/modeb"
+                android:layout_width="250sp"
+                android:layout_gravity="center"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:text="NORMAL"
+                android:tooltipText="Mode"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="14sp"
+                android:letterSpacing="0.03"
+                android:visibility="visible"
+                android:textColor="@color/green" />
+
+            <Button
+                android:id="@+id/accountButton"
+                android:layout_width="250sp"
+                android:layout_gravity="center"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:drawableLeft="@drawable/ic_baseline_account_circle_24"
+                android:text="CONNECTED ACCOUNT"
+                android:textStyle="bold"
+                android:textSize="11sp"
+                android:visibility="invisible"
+                android:textColor="@color/green"
+                />
+
+            <Button
+                android:id="@+id/internetStatus"
+                android:layout_width="250sp"
+                android:layout_gravity="center"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:drawableLeft="@drawable/ic_baseline_check_circle_24"
+                android:text=" INTERNET "
+                android:textColor="@color/green"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="invisible"/>
+
+            <Button
+                android:id="@+id/allowedSymbols"
+                android:layout_width="250sp"
+                android:layout_gravity="center"
+                android:textStyle="bold"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:text="QUOTES"
+                android:textColor="@color/green"
+                android:drawableLeft="@drawable/ic_baseline_check_circle_24"
+                android:textSize="11sp"
+                android:visibility="invisible"
+                />
+
+            <Button
+                android:id="@+id/executeButton"
+                android:drawableLeft="@drawable/ic_baseline_check_circle_24"
+                android:layout_width="250sp"
+                android:layout_gravity="center"
+                android:textStyle="bold"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:text="BOT ACTIVE"
+                android:textColor="@color/green"
+                android:visibility="invisible"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+</LinearLayout>
+

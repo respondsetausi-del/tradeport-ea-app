@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asymmetric glow ring - neutral white for theme tinting -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Main glow arc - white base for tinting -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="sweep"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#50FFFFFF"
+                android:centerColor="#10FFFFFF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+</layer-list>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+
+    <color name="purple">#673AB7</color>
+    <color name="white_with_transparency">#F4FFFFFF</color>
+    <color name="red">#990000</color>
+    <color name="red_bright">#cc0000</color>
+    <color name="red_dark">#4d0000</color>
+    <color name="red_glow">#330000</color>
+    <color name="green">#006A04</color>
+
+    <color name="black">#000004</color>
+    <color name="black_pure">#0D0D0D</color>
+    <color name="dark_surface">#141414</color>
+    <color name="dark_card">#121212</color>
+    <color name="grey_light">#f0f0f0</color>
+    <color name="grey_muted">#777777</color>
+    <color name="white">#ffffff</color>
+    
+    <!-- Liquid Glass System -->
+    <color name="glass_surface">#B3141414</color>
+    <color name="glass_surface_light">#99181818</color>
+    <color name="sidebar_glass">#80101010</color>
+    <color name="glass_border">#25ffffff</color>
+    <color name="glass_border_highlight">#35ffffff</color>
+    <color name="glass_glow">#10ffffff</color>
+    <color name="glass_text_primary">#ffffff</color>
+    <color name="glass_text_secondary">#aaaaaa</color>
+    <color name="glass_text_muted">#666666</color>
+    
+    <!-- iOS 26 Typography Hierarchy -->
+    <color name="text_title">#F5FFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="text_meta">#66FFFFFF</color>
+    <color name="text_accent">#FFAA0000</color>
+    
+    <!-- iOS 26 Dialog -->
+    <color name="dialog_dim">#B0000000</color>
+    <color name="dialog_surface">#E6141414</color>
+    <color name="blue_dark">#000004</color>
+    <color name="blue_light">#000004</color>
+    <color name="blue_not_selected">#000004</color>
+    
+    <!-- Glassmorphism Colors -->
+    <color name="glass_card_base">#0FFFFFFF</color>
+    <color name="glass_card_border">#1AFFFFFF</color>
+    <color name="glass_card_inner">#14FFFFFF</color>
+    <color name="glass_card_inner_border">#12FFFFFF</color>
+    <color name="glass_highlight">#19FFFFFF</color>
+    <color name="glass_shimmer">#25FFFFFF</color>
+    <color name="shadow_dark">#40000000</color>
+    
+    <!-- Glass Text Colors -->
+    <color name="glass_text_white">#FFFFFF</color>
+    <color name="glass_text_85">#D9FFFFFF</color>
+    <color name="glass_text_70">#B3FFFFFF</color>
+    <color name="glass_text_50">#80FFFFFF</color>
+    
+    <!-- Accent-Aware Glow Colors (30% alpha for edge glow) -->
+    <color name="glow_crimson">#30FF4444</color>
+    <color name="glow_ocean">#304488FF</color>
+    <color name="glow_emerald">#3044CC77</color>
+    <color name="glow_violet">#30BB86FC</color>
+    <color name="glow_amber">#30DAA520</color>
+    
+    <!-- Default glow color -->
+    <color name="glow_default">#30BB86FC</color>
+
+</resources>

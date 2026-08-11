@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Drawer Header - Glass with subtle crimson accent -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Crimson accent glow at bottom -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#00000000"
+                android:centerColor="#00000000"
+                android:endColor="#15880000" />
+        </shape>
+    </item>
+    
+    <!-- Glass surface -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#CC0C0C0C" />
+        </shape>
+    </item>
+    
+    <!-- Internal lighting -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#08FFFFFF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+</layer-list>

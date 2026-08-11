@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Robot card with subtle 3D depth -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Minimal depth shadow -->
+    <item
+        android:top="1dp"
+        android:left="1dp"
+        android:right="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#20000000" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+    <!-- Card surface with vertical lighting -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#20252525"
+                android:centerColor="#CC1A1A1A"
+                android:endColor="#CC161616" />
+            <corners android:radius="20dp" />
+            <stroke
+                android:width="0.5dp"
+                android:color="#0Cffffff" />
+        </shape>
+    </item>
+    
+</layer-list>

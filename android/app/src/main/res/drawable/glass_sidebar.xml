@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Right edge highlight -->
+    <item android:right="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#E6080808" />
+        </shape>
+    </item>
+    <!-- Glass surface with edge glow -->
+    <item android:right="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#F2050505"
+                android:endColor="#F20a0a0a"
+                android:angle="0" />
+            <stroke
+                android:width="0dp"
+                android:color="#00000000" />
+        </shape>
+    </item>
+    <!-- Right edge line -->
+    <item
+        android:left="-2dp"
+        android:top="0dp"
+        android:bottom="0dp"
+        android:width="1dp"
+        android:gravity="right">
+        <shape android:shape="rectangle">
+            <solid android:color="#20ffffff" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Liquid Glass Small - For smaller cards/items -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Base frosted glass fill -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#38FFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+    <!-- Inner gradient -->
+    <item
+        android:top="0.5dp"
+        android:left="0.5dp"
+        android:right="0.5dp"
+        android:bottom="0.5dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="90"
+                android:startColor="#25FFFFFF"
+                android:endColor="#12FFFFFF" />
+            <corners android:radius="19dp" />
+        </shape>
+    </item>
+    
+    <!-- Subtle border -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="0.5dp"
+                android:color="#18FFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+</layer-list>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS-style glass button - lighter, softer, integrated -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    
+    <!-- Translucent red - light, not heavy -->
+    <solid android:color="#99990000" />
+    <corners android:radius="20dp" />
+    
+</shape>

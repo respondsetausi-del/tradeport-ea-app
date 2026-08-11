@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Glass Drawer - Navigation sheet with glass material -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Very faint crimson edge glow on right edge -->
+    <item
+        android:right="-3dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="0"
+                android:startColor="#00000000"
+                android:endColor="#18880000" />
+        </shape>
+    </item>
+    
+    <!-- Glass surface - dark translucent -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#F0101010" />
+        </shape>
+    </item>
+    
+    <!-- Internal vertical lighting gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#0CFFFFFF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+    <!-- Subtle right edge highlight -->
+    <item
+        android:left="-1dp"
+        android:top="-1dp"
+        android:bottom="-1dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="0.5dp"
+                android:color="#08FFFFFF" />
+        </shape>
+    </item>
+    
+</layer-list>

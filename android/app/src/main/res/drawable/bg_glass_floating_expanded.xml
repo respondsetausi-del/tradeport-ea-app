@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E8121218" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <!-- Glass layer -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#12FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <!-- Top arc highlight -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#15FFFFFF"
+                android:centerColor="#08FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:centerY="0.35" />
+            <corners android:topLeftRadius="28dp" android:topRightRadius="28dp" />
+        </shape>
+    </item>
+    <!-- Glass border -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="#20FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+</layer-list>

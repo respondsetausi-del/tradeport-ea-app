@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Themed Button - Color will be set programmatically -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Soft glow underneath -->
+    <item
+        android:top="2dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:bottom="-2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#20000000" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    
+    <!-- Main button surface - will be tinted by ThemeEngine -->
+    <item android:id="@+id/button_surface">
+        <shape android:shape="rectangle">
+            <solid android:color="#990000" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    
+    <!-- Internal lighting -->
+    <item
+        android:top="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#20FFFFFF"
+                android:endColor="#00000000" />
+            <corners android:radius="23dp" />
+        </shape>
+    </item>
+    
+</layer-list>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="color_view">
+        <attr name="textColor" format="color"/>
+        <attr name="textColorMuted" format="color"/>
+        <attr name="backgroundColor" format="color"/>
+        <attr name="backgroundColorMuted" format="color"/>
+        <attr name="red" format="color"/>
+    </declare-styleable>
+    
+    <!-- GlassCardView Custom Attributes -->
+    <declare-styleable name="GlassCardView">
+        <attr name="glassCornerRadius" format="dimension" />
+        <attr name="glassTint" format="color" />
+        <attr name="glassBlurRadius" format="float" />
+        <attr name="glassBorderWidth" format="dimension" />
+        <attr name="glassBorderColor" format="color" />
+        <attr name="glassAnimateShimmer" format="boolean" />
+    </declare-styleable>
+    
+    <!-- GlassEdgeGlowView Custom Attributes -->
+    <declare-styleable name="GlassEdgeGlowView">
+        <attr name="glowColor" format="color" />
+        <attr name="glowCornerRadius" format="dimension" />
+        <attr name="glowStrokeWidth" format="dimension" />
+        <attr name="glowSpeed" format="integer" />
+    </declare-styleable>
+</resources>

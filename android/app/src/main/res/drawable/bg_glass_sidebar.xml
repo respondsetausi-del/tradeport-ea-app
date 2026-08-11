@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Navigation drawer glass background -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Solid dark base so content behind doesn't bleed too much -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#F0121212" />
+        </shape>
+    </item>
+    
+    <!-- Glass overlay with top-to-bottom subtle gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#12FFFFFF"
+                android:centerColor="#08FFFFFF"
+                android:endColor="#04FFFFFF"
+                android:centerY="0.3" />
+        </shape>
+    </item>
+    
+    <!-- Right border line -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="#15FFFFFF" />
+        </shape>
+    </item>
+    
+</layer-list>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Neon edge glow card - vibrant outer edge like the robot card UI -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Outer neon glow layer (brightest) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#55990000" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+    <!-- Middle glow layer (transition) -->
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#44990000" />
+            <corners android:radius="27dp" />
+        </shape>
+    </item>
+    
+    <!-- Inner glow layer -->
+    <item
+        android:left="2dp"
+        android:top="2dp"
+        android:right="2dp"
+        android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#33990000" />
+            <corners android:radius="26dp" />
+        </shape>
+    </item>
+    
+    <!-- Dark card background -->
+    <item
+        android:left="3dp"
+        android:top="3dp"
+        android:right="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#1a1a1a"
+                android:centerColor="#0f0f0f"
+                android:endColor="#0a0a0a"
+                android:angle="135" />
+            <corners android:radius="25dp" />
+        </shape>
+    </item>
+    
+    <!-- Bright inner border for definition -->
+    <item
+        android:left="3dp"
+        android:top="3dp"
+        android:right="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="2dp"
+                android:color="#66990000" />
+            <corners android:radius="25dp" />
+        </shape>
+    </item>
+    
+</layer-list>

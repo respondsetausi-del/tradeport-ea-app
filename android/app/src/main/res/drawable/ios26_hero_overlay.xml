@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Hero Overlay - Lighter fade preserving 75% of image visibility -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Layer 1: Gentle bottom fade — only starts getting dark at 55% down -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#00000000"
+                android:centerColor="#40000000"
+                android:endColor="#E0000000"
+                android:centerY="0.55" />
+        </shape>
+    </item>
+
+    <!-- Layer 2: Bottom 20% — stronger dark for text readability -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#00000000"
+                android:centerColor="#00000000"
+                android:endColor="#F0000000"
+                android:centerY="0.8" />
+        </shape>
+    </item>
+
+    <!-- Layer 3: Very subtle vignette — barely visible -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="70%p"
+                android:centerX="0.5"
+                android:centerY="0.4"
+                android:startColor="#00000000"
+                android:endColor="#25000000" />
+        </shape>
+    </item>
+
+</layer-list>

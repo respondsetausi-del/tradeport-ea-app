@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Glass Panel with 3D Depth - Control Center style -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Crimson edge glow - stronger, visible but diffused -->
+    <item
+        android:top="-3dp"
+        android:left="-3dp"
+        android:right="-3dp"
+        android:bottom="-3dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="300dp"
+                android:centerX="50%"
+                android:centerY="50%"
+                android:startColor="#30990000"
+                android:endColor="#00000000" />
+            <corners android:radius="35dp" />
+        </shape>
+    </item>
+    
+    <!-- Softer depth falloff below -->
+    <item
+        android:top="3dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:bottom="-2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#0C000000" />
+            <corners android:radius="34dp" />
+        </shape>
+    </item>
+    
+    <!-- Glass panel base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#D9181818" />
+            <corners android:radius="32dp" />
+        </shape>
+    </item>
+    
+    <!-- Internal 3D lighting - stronger top highlight -->
+    <item
+        android:top="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#1AFFFFFF"
+                android:centerColor="#08FFFFFF"
+                android:endColor="#00000000" />
+            <corners android:radius="31dp" />
+        </shape>
+    </item>
+    
+    <!-- Soft edge light catch -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="0.5dp"
+                android:color="#10FFFFFF" />
+            <corners android:radius="32dp" />
+        </shape>
+    </item>
+    
+</layer-list>

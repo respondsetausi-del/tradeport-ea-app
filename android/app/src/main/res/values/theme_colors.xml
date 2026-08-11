@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Theme Engine - Accent Colors -->
+<resources>
+    
+    <!-- Theme: Crimson (Default) -->
+    <color name="theme_crimson_glow">#990000</color>
+    <color name="theme_crimson_glow_soft">#660000</color>
+    <color name="theme_crimson_accent">#AA0000</color>
+    <color name="theme_crimson_highlight">#CC0000</color>
+    
+    <!-- Theme: Ocean -->
+    <color name="theme_ocean_glow">#006699</color>
+    <color name="theme_ocean_glow_soft">#004466</color>
+    <color name="theme_ocean_accent">#0088AA</color>
+    <color name="theme_ocean_highlight">#00AACC</color>
+    
+    <!-- Theme: Emerald -->
+    <color name="theme_emerald_glow">#006644</color>
+    <color name="theme_emerald_glow_soft">#004433</color>
+    <color name="theme_emerald_accent">#008855</color>
+    <color name="theme_emerald_highlight">#00AA66</color>
+    
+    <!-- Theme: Violet -->
+    <color name="theme_violet_glow">#660099</color>
+    <color name="theme_violet_glow_soft">#440066</color>
+    <color name="theme_violet_accent">#8800AA</color>
+    <color name="theme_violet_highlight">#AA00CC</color>
+    
+    <!-- Theme: Amber -->
+    <color name="theme_amber_glow">#996600</color>
+    <color name="theme_amber_glow_soft">#664400</color>
+    <color name="theme_amber_accent">#AA7700</color>
+    <color name="theme_amber_highlight">#CC8800</color>
+    
+    <!-- Theme: Silver (Neutral) -->
+    <color name="theme_silver_glow">#555555</color>
+    <color name="theme_silver_glow_soft">#333333</color>
+    <color name="theme_silver_accent">#777777</color>
+    <color name="theme_silver_highlight">#999999</color>
+    
+    <!-- Dialog button colors -->
+    <color name="dialog_btn_neutral">#888888</color>
+    <color name="dialog_btn_destructive">#CC0000</color>
+    
+</resources>

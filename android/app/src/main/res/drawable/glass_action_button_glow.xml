@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer intense glow -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#30cc0000" />
+        </shape>
+    </item>
+    <!-- Mid glow -->
+    <item
+        android:left="3dp"
+        android:top="3dp"
+        android:right="3dp"
+        android:bottom="3dp">
+        <shape android:shape="oval">
+            <solid android:color="#50990000" />
+        </shape>
+    </item>
+    <!-- Inner glass button -->
+    <item
+        android:left="5dp"
+        android:top="5dp"
+        android:right="5dp"
+        android:bottom="5dp">
+        <shape android:shape="oval">
+            <gradient
+                android:startColor="#E6aa0000"
+                android:endColor="#E6880000"
+                android:angle="135" />
+            <stroke
+                android:width="1dp"
+                android:color="#50ff4444" />
+        </shape>
+    </item>
+</layer-list>

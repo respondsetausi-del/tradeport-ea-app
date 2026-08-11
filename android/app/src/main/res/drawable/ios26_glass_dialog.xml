@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Glass Dialog - Dark translucent modal surface -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Outer glow - very subtle crimson -->
+    <item
+        android:top="-2dp"
+        android:left="-2dp"
+        android:right="-2dp"
+        android:bottom="-2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="250dp"
+                android:centerX="50%"
+                android:centerY="50%"
+                android:startColor="#20880000"
+                android:endColor="#00000000" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+    <!-- Glass surface - dark translucent -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E6141414" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    
+    <!-- Internal 3D lighting -->
+    <item
+        android:top="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#15FFFFFF"
+                android:centerColor="#08FFFFFF"
+                android:endColor="#00000000" />
+            <corners android:radius="23dp" />
+        </shape>
+    </item>
+    
+    <!-- Soft edge light catch -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="0.5dp"
+                android:color="#10FFFFFF" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    
+</layer-list>

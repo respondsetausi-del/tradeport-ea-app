@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Trade Port EA </string>
+    <string name="accessibility_service_description">This Service is used by Mobile App To automate trading.</string>
+    <string name="title_activity_home">HomeActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_help">Help</string>
+    <string name="title_group">Messages</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="title_metatrader">Metatrader</string>
+
+    <string name="note_text">
+        Please enter the license key you were issued by your mentor or your mentor.
+    </string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="wecome">Welcome to Trade Port EA, Please make sure all the buttons have green ticks. If only one of the test have not passed it means you wont be able to automate trades.</string>
+    <string name="add_a_new_ea">CONNECT NEW ROBOT</string>
+    <string name="speed_max_lethal_2">EA Gold Trader</string>
+    
+    <!-- New strings for redesigned home -->
+    <string name="header_title">Blue Pips Traders</string>
+    <string name="bot_subtitle">AI-powered gold trading bot</string>
+    <string name="powered_by">Tradeport.EA</string>
+    <string name="btn_pairs">PAIRS</string>
+    <string name="btn_trade">TRADE</string>
+    <string name="btn_info">INFO</string>
+    <string name="robot_list">Robot List</string>
+    <string name="trade_port_scanner">TRADE PORT SCANNER</string>
+</resources>

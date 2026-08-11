@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS Liquid Glass - unified card with very soft ambient red underglow -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Very soft, large radius ambient red glow - barely visible -->
+    <item
+        android:left="-16dp"
+        android:top="-16dp"
+        android:right="-16dp"
+        android:bottom="-16dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="100%p"
+                android:centerX="0.5"
+                android:centerY="0.8"
+                android:startColor="#12990000"
+                android:endColor="#00000000" />
+            <corners android:radius="44dp" />
+        </shape>
+    </item>
+    
+    <!-- Glass surface - soft charcoal, no hard borders -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E6181818" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    
+</layer-list>

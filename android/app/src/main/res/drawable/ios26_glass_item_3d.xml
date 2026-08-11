@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Glass Item - For list cards with 3D depth -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Subtle crimson underglow -->
+    <item
+        android:top="-2dp"
+        android:left="-2dp"
+        android:right="-2dp"
+        android:bottom="-2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="200dp"
+                android:centerX="50%"
+                android:centerY="80%"
+                android:startColor="#22990000"
+                android:endColor="#00000000" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    
+    <!-- Soft depth falloff -->
+    <item
+        android:top="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:bottom="-1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#0A000000" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+    <!-- Glass base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#B31C1C1C" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+    <!-- Internal 3D lighting - stronger -->
+    <item
+        android:top="0.5dp"
+        android:left="0.5dp"
+        android:right="0.5dp"
+        android:bottom="0.5dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#18FFFFFF"
+                android:endColor="#00000000" />
+            <corners android:radius="19dp" />
+        </shape>
+    </item>
+    
+    <!-- Edge light catch -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="0.5dp"
+                android:color="#0CFFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    
+</layer-list>

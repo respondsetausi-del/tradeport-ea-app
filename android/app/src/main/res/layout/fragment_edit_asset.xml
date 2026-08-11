@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ios26_crimson_atmosphere"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    tools:context=".ui.home.assets.edit.EditAssetFragment">
+
+    <!-- Top bar: back + delete -->
+    <RelativeLayout
+        android:id="@+id/top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="20dp">
+
+        <ImageButton
+            android:id="@+id/backbtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_baseline_arrow_back_24"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:contentDescription="Back" />
+
+        <ImageButton
+            android:id="@+id/delete_symbol"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/ic_baseline_delete_forever_24"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:contentDescription="Delete" />
+    </RelativeLayout>
+
+    <!-- Symbol name header -->
+    <TextView
+        android:id="@+id/top_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/top_bar"
+        android:layout_marginTop="8dp"
+        android:padding="5dp"
+        android:text="Step Index"
+        android:fontFamily="@font/cyberfunk"
+        android:textAlignment="center"
+        android:textColor="@color/text_title"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/config_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/top_text"
+        android:text="Configure Symbol"
+        android:textAlignment="center"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Glass Card containing the form -->
+    <LinearLayout
+        android:id="@+id/config_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/config_subtitle"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical"
+        android:background="@drawable/bg_glass_card"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:elevation="8dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/outlined_text_input_layout"
+            style="@style/TransparentTextInputStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Lot Size">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/outlined_edit_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:fontFamily="@font/cyberfunk"
+                android:textColor="@color/white"
+                android:inputType="numberDecimal"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/outlined_text_input_layout_2"
+            style="@style/TransparentTextInputStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:visibility="gone"
+            android:hint="Action. Eg: BUY, SELL or BOTH">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/outlined_edit_text_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:fontFamily="@font/cyberfunk"
+                android:textColor="@color/white"
+                android:inputType="text"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/outlined_text_input_layout_3"
+            style="@style/TransparentTextInputStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:visibility="gone"
+            android:hint="Platform: MT5 / MT4">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/outlined_edit_text_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/cyberfunk"
+                android:inputType="text"
+                android:textColor="@color/white"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/outlined_text_input_layout_4"
+            style="@style/TransparentTextInputStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:hint="Number Of Trades Eg: 10">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/outlined_edit_text_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/cyberfunk"
+                android:inputType="text"
+                android:textColor="@color/white"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/submit"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/ios26_glass_button"
+            android:text="Save"
+            android:fontFamily="@font/cyberfunk"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

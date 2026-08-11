@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Theme Swatch: Silver -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#555555" />
+            <size android:width="36dp" android:height="36dp" />
+        </shape>
+    </item>
+    <item
+        android:top="2dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:bottom="2dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="18dp"
+                android:centerX="30%"
+                android:centerY="30%"
+                android:startColor="#40FFFFFF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+</layer-list>

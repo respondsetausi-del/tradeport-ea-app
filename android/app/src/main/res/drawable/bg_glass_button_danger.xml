@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Glass danger button with red tint (for Close All Trades) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Red base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E8DC2626" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    
+    <!-- Top highlight gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#20FFFFFF"
+                android:centerColor="#0AFFFFFF"
+                android:endColor="#00FFFFFF"
+                android:centerY="0.5" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    
+    <!-- Border stroke -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="#30FFFFFF" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    
+</layer-list>

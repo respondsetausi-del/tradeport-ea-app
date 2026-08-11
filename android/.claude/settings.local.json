@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(cmd.exe /c \"gradlew.bat assembleDebug\")",
+      "Bash(cmd.exe /c \"cd /d \"\"C:\\\\Users\\\\respo\\\\OneDrive\\\\Desktop\\\\app\\\\test 2\\\\New folder\\\\Stable\\\\TradePUP\\\\tradeportea\"\" && gradlew.bat assembleDebug 2>&1\")",
+      "Bash(\"C:\\\\Users\\\\respo\\\\OneDrive\\\\Desktop\\\\app\\\\test 2\\\\New folder\\\\Stable\\\\TradePUP\\\\tradeportea\\\\gradlew.bat\" -p \"C:\\\\Users\\\\respo\\\\OneDrive\\\\Desktop\\\\app\\\\test 2\\\\New folder\\\\Stable\\\\TradePUP\\\\tradeportea\" assembleDebug)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(cygpath -w /tmp/tradeport-ea-app)",
+      "Bash(grep -l \"check-email\\\\|checkEmail\\\\|device_id\" /tmp/tradeport-ea-app/app/*.tsx /tmp/tradeport-ea-app/services/*.ts /tmp/tradeport-ea-app/providers/*.tsx)",
+      "Bash(./gradlew clean:*)",
+      "Bash(./gradlew --stop)",
+      "Bash(adb devices:*)",
+      "Bash(adb logcat:*)",
+      "Read(//c/Users/respo/AppData/Local/Android/Sdk/platform-tools/**)",
+      "Read(//c/Users/respo/AppData/Local/Android/**)",
+      "Bash(/c/Users/respo/AppData/Local/Android/Sdk/platform-tools/adb.exe devices:*)",
+      "Bash(/c/Users/respo/AppData/Local/Android/Sdk/platform-tools/adb.exe logcat:*)",
+      "Bash(/c/Users/respo/AppData/Local/Android/Sdk/platform-tools/adb.exe shell:*)",
+      "Bash(/c/Users/respo/AppData/Local/Android/Sdk/platform-tools/adb.exe install:*)",
+      "Bash(/c/Users/respo/AppData/Local/Android/Sdk/platform-tools/adb.exe exec-out:*)",
+      "Read(//tmp/**)",
+      "Bash(/c/Users/respo/AppData/Local/Android/Sdk/platform-tools/adb.exe pull:*)",
+      "Bash(python -c ':*)",
+      "Bash(python -c \" import xml.etree.ElementTree as ET t=ET.parse\\('ui.xml'\\); root=t.getroot\\(\\) for n in root.iter\\(\\): a=n.attrib txt=a.get\\('text',''\\).strip\\(\\) if txt: print\\(a.get\\('bounds',''\\),'|',txt\\) \")",
+      "Bash(adb install:*)",
+      "Bash(cygpath -w /tmp/ea-converter-app-public)"
+    ]
+  }
+}

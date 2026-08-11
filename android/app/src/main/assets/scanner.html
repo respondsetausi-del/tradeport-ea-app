@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Chart Scanner</title>
+<style>
+  :root {
+    --accent: #AA0000;
+    --accent-66: rgba(170, 0, 0, 0.4);
+    --accent-33: rgba(170, 0, 0, 0.2);
+    --accent-14: rgba(170, 0, 0, 0.08);
+    --accent-cc: rgba(170, 0, 0, 0.8);
+    --buy: #22C55E;
+    --sell: #EF4444;
+    --wait: #9CA3AF;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body { min-height: 100vh; }
+
+  /* ── Header ────────────────────────────────────────────────── */
+  .hdr {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    background: rgba(0,0,0,0.9);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .hdr-title {
+    flex: 1; text-align: center;
+    font-size: 16px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--accent);
+  }
+  .hdr-btn {
+    width: 36px; height: 36px; border-radius: 18px;
+    border: 1px solid var(--accent-66);
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    box-shadow: 0 0 6px 1px var(--accent-cc), 0 0 18px 4px var(--accent-33);
+    cursor: pointer;
+  }
+  .hdr-btn svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; }
+  .hdr-badge {
+    position: absolute; top: -4px; right: -4px;
+    min-width: 16px; height: 16px; border-radius: 8px;
+    padding: 0 4px;
+    background: var(--accent);
+    color: #000; font-size: 9px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hdr-spacer { width: 36px; height: 36px; }
+
+  /* ── Body ──────────────────────────────────────────────────── */
+  .body {
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 16px;
+    padding-bottom: 40px;
+  }
+  .intro {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px; line-height: 18px;
+    text-align: center;
+  }
+
+  /* ── History drawer ───────────────────────────────────────── */
+  .history {
+    border: 1px solid var(--accent-66);
+    border-radius: 16px;
+    background: #080D1A;
+    padding: 14px;
+    box-shadow: 0 0 6px 1px var(--accent-cc), 0 0 18px 4px var(--accent-33);
+  }
+  .history.hidden { display: none; }
+  .history-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .history-title {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.6px;
+    color: var(--accent);
+  }
+  .history-clear {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--accent-cc);
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  }
+  .history-clear svg { width: 14px; height: 14px; stroke: var(--accent-cc); fill: none; }
+  .history-empty {
+    color: rgba(255,255,255,0.55);
+    font-size: 12px; text-align: center; padding: 10px 0;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid;
+    border-radius: 12px;
+  }
+  .history-badge {
+    padding: 4px 8px; border-radius: 8px;
+    border: 1px solid;
+    font-size: 10px; font-weight: 900; letter-spacing: 1px;
+  }
+  .history-headline {
+    color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+  }
+  .history-meta {
+    color: rgba(255,255,255,0.6); font-size: 10px; margin-top: 2px;
+  }
+
+  /* ── Dropzone ─────────────────────────────────────────────── */
+  .dropzone {
+    position: relative;
+    border-radius: 16px;
+    border: 1px dashed var(--accent-66);
+    background: #080D1A;
+    min-height: 260px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 0 6px 1px var(--accent-cc), 0 0 18px 4px var(--accent-33);
+  }
+  .dropzone-inner {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 24px;
+  }
+  .dropzone-inner svg {
+    width: 36px; height: 36px; stroke: var(--accent); fill: none;
+  }
+  .dropzone-title {
+    font-size: 14px; font-weight: 700; letter-spacing: 1.4px;
+    color: var(--accent);
+  }
+  .dropzone-sub {
+    color: rgba(255,255,255,0.55);
+    font-size: 11px; font-weight: 500; letter-spacing: 0.5px;
+  }
+  .dropzone img {
+    width: 100%; height: 260px; object-fit: contain;
+    background: #000;
+    display: block;
+  }
+  .level-line {
+    position: absolute; left: 10px; right: 10px;
+    height: 0; border-top: 1px dashed;
+    box-shadow: 0 0 8px currentColor;
+    pointer-events: none;
+  }
+  .level-tag {
+    position: absolute; left: 0; top: -8px;
+    padding: 2px 6px; border-radius: 4px;
+    font-size: 9px; font-weight: 900; color: #000;
+  }
+  /* Scan-line sweep */
+  .scan-veil {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
+  .scan-line {
+    position: absolute; left: 0; right: 0; top: 0;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+    pointer-events: none;
+    animation: scansweep 1.6s linear infinite;
+  }
+  @keyframes scansweep {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(258px); }
+  }
+
+  /* ── Action buttons ───────────────────────────────────────── */
+  .actions {
+    display: flex; gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 12px;
+    border-radius: 28px;
+    border: 1px solid;
+    background: #080D1A;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn svg { width: 16px; height: 16px; fill: none; }
+  .btn-secondary { border-color: var(--accent-66); color: var(--accent); }
+  .btn-secondary svg { stroke: var(--accent); }
+  .btn-secondary-text {
+    font-size: 12px; font-weight: 700; letter-spacing: 1.2px; color: var(--accent);
+  }
+  .btn-primary {
+    border-color: var(--accent); color: var(--accent);
+    box-shadow: 0 0 10px 2px var(--accent-cc), 0 0 20px 6px var(--accent-33);
+  }
+  .btn-primary svg { stroke: var(--accent); width: 18px; height: 18px; }
+  .btn-primary-text {
+    font-size: 13px; font-weight: 800; letter-spacing: 1.4px; color: var(--accent);
+  }
+
+  /* ── Phases ───────────────────────────────────────────────── */
+  .phases {
+    padding: 16px;
+    border: 1px solid var(--accent-66);
+    border-radius: 16px;
+    background: #080D1A;
+    box-shadow: 0 0 6px 1px var(--accent-cc), 0 0 18px 4px var(--accent-33);
+  }
+  .phases-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .phases-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--accent-33);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .phases-title {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.6px;
+    color: var(--accent);
+  }
+  .phase-list {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 10px 4px;
+  }
+  .phase-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .phase-slot {
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .phase-pending-dot {
+    width: 6px; height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.2);
+  }
+  .phase-active-dot {
+    width: 12px; height: 12px; border-radius: 6px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent), 0 0 14px var(--accent);
+    animation: phasePulse 1.2s ease-in-out infinite;
+  }
+  @keyframes phasePulse {
+    0%,100% { opacity: 0.35; transform: scale(0.85); }
+    50%     { opacity: 1;    transform: scale(1.15); }
+  }
+  .phase-done-ring {
+    width: 18px; height: 18px; border-radius: 9px;
+    border: 1.5px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 6px var(--accent);
+  }
+  .phase-done-ring svg {
+    width: 12px; height: 12px; stroke: var(--accent); fill: none;
+    stroke-width: 3;
+  }
+  .phase-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+  }
+  .phase-label.pending { color: rgba(255,255,255,0.35); }
+  .phase-label.active  { color: var(--accent); text-shadow: 0 0 8px var(--accent-cc); }
+  .phase-label.done    { color: #fff; }
+
+  /* ── Error ────────────────────────────────────────────────── */
+  .error {
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #FF4D4D;
+    background: rgba(255, 77, 77, 0.08);
+    color: #FF6B6B;
+    font-size: 13px; font-weight: 500;
+  }
+
+  /* ── Result ───────────────────────────────────────────────── */
+  .result {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--accent-66);
+    background: #080D1A;
+    display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 0 6px 1px var(--accent-cc), 0 0 18px 4px var(--accent-33);
+  }
+  .result-title {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.6px;
+    color: var(--accent);
+  }
+  .result-body { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Signal hero */
+  .signal-box {
+    position: relative;
+    border-radius: 20px;
+    border: 2px solid;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    overflow: hidden;
+    animation: signalBreathe 2.8s ease-in-out infinite;
+  }
+  @keyframes signalBreathe {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.015); }
+  }
+  .signal-pulse {
+    position: absolute; inset: 4px;
+    border: 1px solid;
+    border-radius: 16px;
+    pointer-events: none;
+    animation: pulseOpacity 2.8s ease-in-out infinite;
+  }
+  @keyframes pulseOpacity {
+    0%,100% { opacity: 0.35; }
+    50%     { opacity: 0.95; }
+  }
+  .signal-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .signal-icon { width: 44px; height: 44px; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+  .signal-text { flex: 1; min-width: 0; }
+  .signal-headline {
+    font-size: 32px; font-weight: 900; letter-spacing: 2px;
+    text-shadow: 0 0 12px currentColor;
+    line-height: 1.1;
+  }
+  .signal-meta {
+    margin-top: 3px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+  }
+  .strength-row {
+    display: flex; gap: 5px; margin-top: 10px;
+  }
+  .strength-bar {
+    width: 22px; height: 6px; border-radius: 3px;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .strength-bar.off {
+    box-shadow: none;
+    opacity: 0.15;
+  }
+  .signal-rationale {
+    color: rgba(255,255,255,0.9);
+    font-size: 13px; font-weight: 500; line-height: 19px;
+    min-height: 19px;
+  }
+  .type-cursor {
+    display: inline-block;
+    animation: blink 0.9s steps(2,start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+
+  /* Confidence gauge */
+  .gauge {
+    width: 110px; height: 110px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .gauge-value {
+    font-size: 26px; font-weight: 900; letter-spacing: 1px;
+    color: #fff;
+  }
+  .gauge-label {
+    margin-top: 2px;
+    font-size: 9px; font-weight: 800; letter-spacing: 1.4px;
+  }
+
+  /* Particle burst container */
+  .particles {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    left: 50%; top: 50%;
+    border-radius: 50%;
+    opacity: 0;
+  }
+  .particle.go {
+    animation: particleFly 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  @keyframes particleFly {
+    0%   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(var(--pdx),var(--pdy)) scale(0.3); }
+  }
+
+  /* Countdown */
+  .countdown {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-top: 4px;
+  }
+  .countdown-label-row {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .countdown-label-row svg { width: 12px; height: 12px; fill: none; stroke-width: 2.5; }
+  .countdown-label {
+    font-size: 10px; font-weight: 800; letter-spacing: 1.2px;
+  }
+  .countdown-track {
+    height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .countdown-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 1s linear;
+  }
+
+  /* Supporting */
+  .summary-text {
+    color: #fff; font-size: 13px; font-weight: 500; line-height: 18px;
+  }
+  .mix-row {
+    display: flex; height: 10px; border-radius: 5px; overflow: hidden;
+    background: rgba(255,255,255,0.06);
+  }
+  .mix-bar { height: 100%; }
+  .mix-labels {
+    display: flex; justify-content: space-between;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px; font-weight: 600;
+  }
+  .stat-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .stat-row { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    color: var(--accent);
+  }
+  .stat-value {
+    color: #fff; font-size: 13px; font-weight: 500; line-height: 18px;
+  }
+  .disclaimer {
+    margin-top: 6px;
+    color: rgba(255,255,255,0.45);
+    font-size: 10px; font-weight: 500; font-style: italic; line-height: 14px;
+  }
+
+  /* ── Trade settings (symbol picker + lot size) ────────────── */
+  .trade-setup {
+    border: 1px solid var(--accent-66);
+    border-radius: 16px;
+    background: #080D1A;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: 0 0 6px 1px var(--accent-cc), 0 0 18px 4px var(--accent-33);
+  }
+  .trade-setup-title {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.6px;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .field-label {
+    font-size: 10px; font-weight: 800; letter-spacing: 1.4px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 4px;
+  }
+  .trade-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--accent-66);
+    background: rgba(255,255,255,0.04);
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px; font-weight: 600;
+    outline: none;
+  }
+  .trade-input:focus { border-color: var(--accent); }
+  .trade-input::placeholder { color: rgba(255,255,255,0.35); font-weight: 500; }
+  .symbol-picker { position: relative; }
+  .symbol-list {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+    max-height: 220px; overflow-y: auto;
+    border: 1px solid var(--accent-66);
+    border-radius: 12px;
+    background: #0B1222;
+    z-index: 20;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .symbol-row {
+    padding: 11px 12px;
+    color: #fff; font-size: 13px; font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+  }
+  .symbol-row:last-child { border-bottom: none; }
+  .symbol-row:active { background: var(--accent-14); }
+  .symbol-empty {
+    padding: 11px 12px;
+    color: rgba(255,255,255,0.45); font-size: 12px;
+  }
+  .trade-note {
+    font-size: 11px; line-height: 15px;
+    color: #FF6B6B; font-weight: 500;
+    min-height: 0;
+  }
+  .trade-note:empty { display: none; }
+
+  /* ── Execution status ─────────────────────────────────────── */
+  .exec-status {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid;
+    font-size: 12px; font-weight: 800; letter-spacing: 1.2px;
+    text-align: center;
+  }
+  .exec-status.executing {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-14);
+    animation: pulseOpacity 1.2s ease-in-out infinite;
+  }
+  .exec-status.done {
+    border-color: #22C55E; color: #22C55E;
+    background: rgba(34,197,94,0.10);
+  }
+  .exec-status.failed {
+    border-color: #EF4444; color: #EF4444;
+    background: rgba(239,68,68,0.10);
+  }
+  .exec-status.waitmode {
+    border-color: rgba(156,163,175,0.5); color: #9CA3AF;
+    background: rgba(156,163,175,0.08);
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="hdr">
+    <div class="hdr-spacer"></div>
+    <div class="hdr-title">CHART SCANNER</div>
+    <button class="hdr-btn" id="historyToggle" aria-label="History">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
+      </svg>
+      <span class="hdr-badge hidden" id="historyBadge">0</span>
+    </button>
+  </div>
+
+  <div class="body">
+    <div class="intro">
+      Pick a symbol from your MT5 account, set the lot size, then drop a chart screenshot. We read the candles on-device and the signal executes automatically on your account.
+    </div>
+
+    <div class="trade-setup" id="tradeSetup">
+      <div class="trade-setup-title">TRADE SETTINGS</div>
+      <div class="field-label">SYMBOL</div>
+      <div class="symbol-picker">
+        <input type="text" class="trade-input" id="symbolSearch" placeholder="Loading symbols..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <div class="symbol-list hidden" id="symbolList"></div>
+      </div>
+      <div class="field-label">LOT SIZE</div>
+      <input type="text" class="trade-input" id="lotInput" inputmode="decimal" value="0.01" />
+      <div class="trade-note" id="tradeNote"></div>
+    </div>
+
+    <div class="history hidden" id="historyBox">
+      <div class="history-head">
+        <div class="history-title">RECENT SCANS</div>
+        <button class="history-clear hidden" id="historyClearBtn">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          CLEAR
+        </button>
+      </div>
+      <div id="historyContent"></div>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-inner" id="dropzoneInner">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div class="dropzone-title">TAP TO UPLOAD CHART</div>
+        <div class="dropzone-sub">PNG or JPG screenshot of your chart</div>
+      </div>
+      <input type="file" accept="image/*" id="fileInput" style="display:none" />
+      <img id="previewImg" class="hidden" alt="chart preview" />
+      <div id="levelOverlay"></div>
+      <div id="scanOverlay" class="hidden">
+        <div class="scan-veil"></div>
+        <div class="scan-line"></div>
+      </div>
+    </div>
+
+    <div class="actions hidden" id="actions">
+      <button class="btn btn-secondary" id="changeBtn">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
+          <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/>
+        </svg>
+        <span class="btn-secondary-text">CHANGE IMAGE</span>
+      </button>
+      <button class="btn btn-primary" id="scanBtn">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+          <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <line x1="7" y1="12" x2="17" y2="12"/>
+        </svg>
+        <span class="btn-primary-text">SCAN CHART</span>
+      </button>
+    </div>
+
+    <div class="phases hidden" id="phasesBox">
+      <div class="phases-head">
+        <div class="phases-spinner"></div>
+        <div class="phases-title">ANALYZING CHART</div>
+      </div>
+      <div class="phase-list" id="phaseList"></div>
+    </div>
+
+    <div class="error hidden" id="errorBox"></div>
+
+    <div class="result hidden" id="resultBox">
+      <div class="result-title">CHART DIAGNOSTICS</div>
+      <div class="result-body" id="resultBody"></div>
+    </div>
+  </div>
+
+<script>
+/* eslint-disable */
+(function() {
+  // ── Accent injection (from ?accent=RRGGBB) ─────────────────────────
+  function parseAccent() {
+    try {
+      var m = (location.search || '').match(/accent=([0-9A-Fa-f]{6})/);
+      if (m) return '#' + m[1];
+    } catch (e) {}
+    return '#AA0000';
+  }
+  function withAlpha(hex, a) {
+    var r = parseInt(hex.slice(1,3), 16);
+    var g = parseInt(hex.slice(3,5), 16);
+    var b = parseInt(hex.slice(5,7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+  var ACCENT = parseAccent();
+  document.documentElement.style.setProperty('--accent', ACCENT);
+  document.documentElement.style.setProperty('--accent-66', withAlpha(ACCENT, 0.4));
+  document.documentElement.style.setProperty('--accent-33', withAlpha(ACCENT, 0.2));
+  document.documentElement.style.setProperty('--accent-14', withAlpha(ACCENT, 0.08));
+  document.documentElement.style.setProperty('--accent-cc', withAlpha(ACCENT, 0.8));
+
+  // ── Analyzer core (exact port of chart-heuristics.ts ANALYZER_CORE) ─
+  function analyzePixels(imageData, width, height) {
+    var data = imageData.data;
+    var greenCount = 0, redCount = 0;
+    var colSums = new Array(width);
+    var colCounts = new Array(width);
+    var colMinY = new Array(width);
+    var colMaxY = new Array(width);
+    for (var x = 0; x < width; x++) {
+      colSums[x] = 0; colCounts[x] = 0; colMinY[x] = height; colMaxY[x] = 0;
+    }
+    var leftGreen = 0, leftRed = 0, rightGreen = 0, rightRed = 0;
+    var half = Math.floor(width / 2);
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        var i = (y * width + x) * 4;
+        var r = data[i], g = data[i+1], b = data[i+2];
+        var maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        var minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        if (maxC < 30) continue;
+        if (minC > 220) continue;
+        var isGreen = g > r + 18 && g > b + 10;
+        var isRed = r > g + 18 && r > b + 10;
+        if (!isGreen && !isRed) continue;
+        if (isGreen) {
+          greenCount++;
+          if (x < half) leftGreen++; else rightGreen++;
+        } else {
+          redCount++;
+          if (x < half) leftRed++; else rightRed++;
+        }
+        colSums[x] += y;
+        colCounts[x] += 1;
+        if (y < colMinY[x]) colMinY[x] = y;
+        if (y > colMaxY[x]) colMaxY[x] = y;
+      }
+    }
+    var n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    var spreads = [];
+    for (var x = 0; x < width; x++) {
+      if (colCounts[x] > 0) {
+        var cy = colSums[x] / colCounts[x];
+        n++;
+        sx += x; sy += cy; sxx += x * x; sxy += x * cy;
+        spreads.push(colMaxY[x] - colMinY[x]);
+      }
+    }
+    var slope = 0;
+    if (n > 2) {
+      var denom = n * sxx - sx * sx;
+      if (denom !== 0) {
+        var m = (n * sxy - sx * sy) / denom;
+        slope = -m * (width / height);
+        if (slope > 1) slope = 1;
+        if (slope < -1) slope = -1;
+      }
+    }
+    var meanSpread = 0;
+    for (var k = 0; k < spreads.length; k++) meanSpread += spreads[k];
+    meanSpread = spreads.length ? meanSpread / spreads.length : 0;
+    var variance = 0;
+    for (var k = 0; k < spreads.length; k++) {
+      var d = spreads[k] - meanSpread;
+      variance += d * d;
+    }
+    variance = spreads.length ? variance / spreads.length : 0;
+    var spreadVariance = Math.min(1, Math.sqrt(variance) / (height * 0.25 || 1));
+    var leftTotal = Math.max(1, leftGreen + leftRed);
+    var rightTotal = Math.max(1, rightGreen + rightRed);
+    var leftBias = (leftGreen - leftRed) / leftTotal;
+    var rightBias = (rightGreen - rightRed) / rightTotal;
+    var histBins = 16;
+    var hist = new Array(histBins);
+    for (var h = 0; h < histBins; h++) hist[h] = 0;
+    for (var x = 0; x < width; x++) {
+      if (colCounts[x] > 0) {
+        var cy = colSums[x] / colCounts[x];
+        var bin = Math.floor((cy / height) * histBins);
+        if (bin < 0) bin = 0;
+        if (bin >= histBins) bin = histBins - 1;
+        hist[bin] += 1;
+      }
+    }
+    var binIdx = [];
+    for (var j = 0; j < histBins; j++) binIdx.push({ i: j, c: hist[j] });
+    binIdx.sort(function(a, b) { return b.c - a.c; });
+    var levels = [];
+    var used = [];
+    for (var k = 0; k < binIdx.length && levels.length < 3; k++) {
+      if (binIdx[k].c <= 0) break;
+      var candidate = (binIdx[k].i + 0.5) / histBins;
+      var tooClose = false;
+      for (var u = 0; u < used.length; u++) {
+        if (Math.abs(used[u] - candidate) < 0.08) { tooClose = true; break; }
+      }
+      if (tooClose) continue;
+      used.push(candidate);
+      levels.push(candidate);
+    }
+    return {
+      greenCount: greenCount,
+      redCount: redCount,
+      totalSampled: greenCount + redCount,
+      slope: slope,
+      spreadVariance: spreadVariance,
+      leftBias: leftBias,
+      rightBias: rightBias,
+      levels: levels
+    };
+  }
+
+  // ── Variation pools (exact copy of chart-heuristics.ts) ───────────
+  var HEADLINES = {
+    'BUY-strong': ['BUY SIGNAL','LONG ENTRY','BULLISH BREAKOUT','UPSIDE MOMENTUM','STRONG LONG','RIDE THE TREND'],
+    'BUY-moderate': ['BUY BIAS','LONG SETUP','BULLISH LEAN','TENTATIVE LONG','BUY THE DIP','UPSIDE BIAS'],
+    'BUY-weak': ['CAUTIOUS LONG','BUY — EXHAUSTION RISK','LOW-CONVICTION LONG','MIXED BULLISH','BUY WITH CAUTION','FADING LONG'],
+    'SELL-strong': ['SELL SIGNAL','SHORT ENTRY','BEARISH BREAKDOWN','DOWNSIDE MOMENTUM','STRONG SHORT','FADE THE RALLY'],
+    'SELL-moderate': ['SELL BIAS','SHORT SETUP','BEARISH LEAN','TENTATIVE SHORT','SELL THE RIP','DOWNSIDE BIAS'],
+    'SELL-weak': ['CAUTIOUS SHORT','SELL — EXHAUSTION RISK','LOW-CONVICTION SHORT','MIXED BEARISH','SELL WITH CAUTION','FADING SHORT'],
+    'WAIT-weak': ['NO CLEAN EDGE','RANGE-BOUND','SIT ON HANDS','NO SIGNAL','INDECISIVE TAPE','WAIT FOR BREAK']
+  };
+
+  var RATIONALES = {
+    'BUY-strong': [
+      'Buyers are clearly in control — {bullishPercent}% of candles are green and structure is climbing with {momentum} momentum. Bias and slope are aligned, ride the move.',
+      'Clean uptrend backed by a {bullishPercent}/{bearishPercent} bullish majority; every pullback is being bought. This is as textbook as a long gets.',
+      'Demand is stacking — {bullishPercent}% green candles on a confirmed uptrend leaves dip-buyers firmly in control. Momentum is {momentum}.',
+      'Bulls own the tape. {bullishPercent}% bullish candles, rising highs, and {momentum} momentum behind the push — clean long setup.',
+      'Pixel read is stacked bullish: {bullishPercent}% green, slope rising, momentum {momentum}. Trend-followers get paid here.',
+      'Strong long conditions — {bullishPercent}% bullish dominance, expanding uptrend, and buyers pressing on every dip.'
+    ],
+    'BUY-moderate': [
+      '{bullishPercent}% of candles are green, which tilts bias to the upside, though slope is flat enough that this reads as a lean, not a breakout.',
+      'Bullish lean with a {bullishPercent}/{bearishPercent} candle mix — the idea is right, but wait for a clean higher-low before pressing.',
+      'Buyers have the edge ({bullishPercent}% green candles), but structure is not fully confirming yet. Momentum is {momentum}.',
+      'The tape leans long: {bullishPercent}% bullish candles on an unresolved slope. Conviction is moderate until the trend kicks in.',
+      'There is a bullish bias baked into the candles ({bullishPercent}%); without a strong slope this is a graze long, not a pound-the-table long.',
+      'Buyers hold the balance at {bullishPercent}% of candles — call it bullish, but size accordingly until slope confirms.'
+    ],
+    'BUY-weak': [
+      'Candle count leans bullish ({bullishPercent}% green), but slope is actually rolling over — classic exhaustion risk. Treat longs as counter-trend.',
+      'Bullish candle majority ({bullishPercent}%) on a downward slope reads like late longs getting trapped. Wait for confirmation before pressing.',
+      '{bullishPercent}% green candles contradict a downward-sloping structure — possible reversal brewing, not a clean long. Manage risk tightly.',
+      'Green candle count is high ({bullishPercent}%) but structure is breaking lower. Longs here are fighting the slope.',
+      'The candle mix says buy ({bullishPercent}% green), the slope says otherwise. Conflicts like this usually resolve against the latecomers.',
+      'Bullish participation ({bullishPercent}%) on a bearish slope — either bulls overwhelm the structure or buyers get squeezed out. Low-conviction setup.'
+    ],
+    'SELL-strong': [
+      'Sellers are dictating the tape — {bearishPercent}% of candles are red and structure is rolling over with {momentum} momentum. Fade every bounce.',
+      'Clean downtrend backed by a {bearishPercent}/{bullishPercent} bearish majority; every rally is being sold into. Textbook short setup.',
+      'Supply is hitting bounces — {bearishPercent}% red candles on a confirmed downtrend leaves sellers firmly in control. Momentum is {momentum}.',
+      'Bears own the tape. {bearishPercent}% bearish candles, lower lows, and {momentum} momentum pushing the move — clean short setup.',
+      'Pixel read is stacked bearish: {bearishPercent}% red, slope falling, momentum {momentum}. Trend-followers get paid on the short side.',
+      'Strong short conditions — {bearishPercent}% bearish dominance, expanding downtrend, and sellers pressing on every bounce.'
+    ],
+    'SELL-moderate': [
+      '{bearishPercent}% of candles are red, which tilts bias to the downside, though slope is flat enough that this reads as a lean, not a breakdown.',
+      'Bearish lean with a {bearishPercent}/{bullishPercent} candle mix — the idea is right, but wait for a clean lower-high before shorting.',
+      'Sellers have the edge ({bearishPercent}% red candles), but structure is not fully confirming yet. Momentum is {momentum}.',
+      'The tape leans short: {bearishPercent}% bearish candles on an unresolved slope. Conviction is moderate until the trend kicks in.',
+      'There is a bearish bias baked into the candles ({bearishPercent}%); without a strong slope this is a graze short, not a full commit.',
+      'Sellers hold the balance at {bearishPercent}% of candles — call it bearish, but size accordingly until slope confirms.'
+    ],
+    'SELL-weak': [
+      'Candle count leans bearish ({bearishPercent}% red), but slope is actually rising — classic exhaustion risk. Treat shorts as counter-trend.',
+      'Bearish candle majority ({bearishPercent}%) on an upward slope reads like late shorts getting squeezed. Wait for confirmation.',
+      '{bearishPercent}% red candles contradict an upward-sloping structure — possible reversal brewing, not a clean short. Manage risk tightly.',
+      'Red candle count is high ({bearishPercent}%) but structure is pushing higher. Shorts here are fighting the slope.',
+      'The candle mix says sell ({bearishPercent}% red), the slope says otherwise. These conflicts usually resolve against the latecomers.',
+      'Bearish participation ({bearishPercent}%) on a bullish slope — either bears overwhelm the structure or sellers get covered out. Low-conviction setup.'
+    ],
+    'WAIT-weak': [
+      'Candle mix is practically 50/50 ({bullishPercent}/{bearishPercent}) on a flat slope — no clean edge for either side. Patience pays here.',
+      'Buyers and sellers are evenly matched ({bullishPercent}% / {bearishPercent}%) and structure is sideways. Sit on hands until the market picks a side.',
+      'Tape is in equilibrium at {bullishPercent}/{bearishPercent} with no directional slope. Wait for a range break before committing.',
+      'Nothing resolves: {bullishPercent}/{bearishPercent} candle split, flat structure. This is a do-nothing chart.',
+      'Neither side is winning — {bullishPercent}/{bearishPercent} mix on a flat slope. Step aside until one takes control.',
+      'Perfect indecision: {bullishPercent}/{bearishPercent} candles, flat structure, no reason to force a trade.'
+    ]
+  };
+
+  var VOL_NOTES = {
+    low: [
+      'Volatility is low — tight stops are workable.',
+      'Range is compressed — keep risk close.',
+      'Quiet tape — stops can sit tight.'
+    ],
+    moderate: [
+      'Moderate volatility — standard stop placement.',
+      'Range is normal — size as usual.',
+      'Volatility is in the neutral zone — no special adjustments.'
+    ],
+    high: [
+      'High volatility — widen stops and size down.',
+      'Range is wide — give stops room and cut size.',
+      'Volatile tape — reduce size and respect the noise.'
+    ]
+  };
+
+  var SUMMARIES = [
+    '{biasLabel} candle majority ({bullishPercent}% green / {bearishPercent}% red) on a {trendLabel} with {volatility} volatility. Momentum is {momentum}.',
+    'Candle split sits at {bullishPercent}/{bearishPercent} ({biasLabel} lean). Structure is a {trendLabel}, volatility reads {volatility}, momentum {momentum}.',
+    '{trendLabel} backdrop with {bullishPercent}% bullish candles vs {bearishPercent}% bearish. Volatility {volatility}, momentum {momentum}.',
+    '{biasLabel} tape ({bullishPercent}/{bearishPercent} candle mix) on a {trendLabel}. {volatility} volatility, {momentum} momentum.'
+  ];
+
+  function pickSeed(stats) {
+    var s = Math.round(stats.slope * 1000);
+    var v = Math.round(stats.spreadVariance * 777);
+    var g = stats.greenCount | 0;
+    var r = stats.redCount | 0;
+    var lb = Math.round((stats.leftBias + 1) * 500);
+    var rb = Math.round((stats.rightBias + 1) * 500);
+    var h = (s * 13) ^ (v * 17) ^ (g * 23) ^ (r * 29) ^ (lb * 31) ^ (rb * 37);
+    h = (h ^ (h >>> 16)) >>> 0;
+    return h;
+  }
+  function pickFrom(arr, seed, salt) { return arr[(seed + salt) % arr.length]; }
+  function interpolate(tpl, vars) {
+    return tpl.replace(/\{(\w+)\}/g, function(_, k) {
+      var v = vars[k];
+      return v === undefined || v === null ? '' : String(v);
+    });
+  }
+
+  function buildInsights(stats) {
+    var total = Math.max(1, stats.greenCount + stats.redCount);
+    var greenRatio = stats.greenCount / total;
+    var bullishPercent = Math.round(greenRatio * 100);
+    var bearishPercent = 100 - bullishPercent;
+
+    var trend;
+    if (stats.slope > 0.15) trend = 'up';
+    else if (stats.slope < -0.15) trend = 'down';
+    else trend = 'sideways';
+
+    var volatility;
+    if (stats.spreadVariance > 0.6) volatility = 'high';
+    else if (stats.spreadVariance > 0.3) volatility = 'moderate';
+    else volatility = 'low';
+
+    var momentumShift = stats.rightBias - stats.leftBias;
+    var momentum;
+    if (Math.abs(momentumShift) < 0.15) momentum = 'stable';
+    else if ((momentumShift > 0 && stats.rightBias > 0) || (momentumShift < 0 && stats.rightBias < 0)) momentum = 'strengthening';
+    else momentum = 'weakening';
+
+    var nearEven = Math.abs(greenRatio - 0.5) < 0.01;
+    var flatSlope = Math.abs(stats.slope) < 0.08;
+    var bias;
+    if (nearEven && flatSlope) bias = 'neutral';
+    else if (greenRatio > 0.5) bias = 'bullish';
+    else if (greenRatio < 0.5) bias = 'bearish';
+    else bias = stats.slope >= 0 ? 'bullish' : 'bearish';
+
+    var action;
+    if (bias === 'bullish') action = 'BUY';
+    else if (bias === 'bearish') action = 'SELL';
+    else action = 'WAIT';
+
+    var slopeAgrees = (action === 'BUY' && stats.slope > 0.05) || (action === 'SELL' && stats.slope < -0.05);
+    var slopeContradicts = (action === 'BUY' && stats.slope < -0.05) || (action === 'SELL' && stats.slope > 0.05);
+    var momentumSupports = (action === 'BUY' && stats.rightBias > 0.1 && momentum === 'strengthening') ||
+                           (action === 'SELL' && stats.rightBias < -0.1 && momentum === 'strengthening');
+
+    var strength;
+    if (action === 'WAIT') strength = 'weak';
+    else if (slopeContradicts) strength = 'weak';
+    else if (slopeAgrees && momentumSupports) strength = 'strong';
+    else strength = 'moderate';
+
+    var biasLabel = bias === 'bullish' ? 'Bullish' : bias === 'bearish' ? 'Bearish' : 'Balanced';
+    var trendLabel = trend === 'up' ? 'uptrend' : trend === 'down' ? 'downtrend' : 'sideways range';
+
+    var seed = pickSeed(stats);
+    var bucket = action + '-' + strength;
+    var headline = pickFrom(HEADLINES[bucket] || HEADLINES['WAIT-weak'], seed, 0);
+    var rationaleTpl = pickFrom(RATIONALES[bucket] || RATIONALES['WAIT-weak'], seed, 1);
+    var volNoteTpl = pickFrom(VOL_NOTES[volatility], seed, 2);
+    var summaryTpl = pickFrom(SUMMARIES, seed, 3);
+
+    var vars = {
+      bullishPercent: bullishPercent,
+      bearishPercent: bearishPercent,
+      biasLabel: biasLabel,
+      trendLabel: trendLabel,
+      momentum: momentum,
+      volatility: volatility
+    };
+    var rationale = interpolate(rationaleTpl, vars) + ' ' + volNoteTpl;
+    var summary = interpolate(summaryTpl, vars);
+
+    var confidence = 55;
+    confidence += Math.abs(stats.slope) * 25;
+    var biasExtremity = Math.abs(bullishPercent - 50) / 50;
+    confidence += biasExtremity * 30;
+    if (slopeAgrees) confidence += 8;
+    if (slopeContradicts) confidence -= 20;
+    if (momentumSupports) confidence += 6;
+    if (action === 'WAIT') confidence = Math.min(confidence, 40);
+    confidence = Math.max(10, Math.min(96, Math.round(confidence)));
+
+    var structureLabel = trend === 'up' ? 'Uptrend' : trend === 'down' ? 'Downtrend' : 'Sideways range';
+
+    return {
+      bias: bias, trend: trend, volatility: volatility, momentum: momentum,
+      bullishPercent: bullishPercent, bearishPercent: bearishPercent,
+      trendSlope: stats.slope, volatilityScore: stats.spreadVariance, momentumShift: momentumShift,
+      confidence: confidence,
+      levels: Array.isArray(stats.levels) ? stats.levels.slice(0, 3) : [],
+      signal: { action: action, strength: strength, headline: headline, rationale: rationale },
+      summary: summary,
+      bullets: [
+        'Candle mix: ' + bullishPercent + '% bullish, ' + bearishPercent + '% bearish',
+        'Structure: ' + structureLabel,
+        'Volatility: ' + volatility,
+        'Momentum: ' + momentum
+      ]
+    };
+  }
+
+  // ── Canvas-based web analyzer ─────────────────────────────────────
+  function analyzeDataUri(uri) {
+    return new Promise(function(resolve, reject) {
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        try {
+          var maxDim = 600;
+          var longest = Math.max(img.width || 1, img.height || 1);
+          var scale = Math.min(1, maxDim / longest);
+          var w = Math.max(1, Math.floor((img.width || 1) * scale));
+          var h = Math.max(1, Math.floor((img.height || 1) * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          var imageData = ctx.getImageData(0, 0, w, h);
+          var stats = analyzePixels(imageData, w, h);
+          resolve(buildInsights(stats));
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function() { reject(new Error('Could not decode the image. Try a PNG/JPG screenshot.')); };
+      img.src = uri;
+    });
+  }
+
+  // ── State ────────────────────────────────────────────────────────
+  var SCAN_HISTORY_KEY = 'scanHistory.v1';
+  var SIGNAL_TTL_MS = 15 * 60 * 1000;
+
+  var state = {
+    pickedDataUri: null,
+    scanLoading: false,
+    insights: null,
+    scanError: null,
+    scanPhase: -1,
+    signalAt: null,
+    scanHistory: [],
+    historyOpen: false
+  };
+
+  var timers = {
+    phaseInterval: null,
+    revealTimeout: null,
+    countdown: null,
+    typewriter: null,
+    gaugeAnim: null
+  };
+  var scanTargetMs = 0;
+  var scanStartedAt = 0;
+
+  // Load history
+  try {
+    var raw = localStorage.getItem(SCAN_HISTORY_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) state.scanHistory = parsed.slice(0, 10);
+    }
+  } catch (e) {}
+
+  // ── DOM refs ─────────────────────────────────────────────────────
+  var $ = function(id) { return document.getElementById(id); };
+  var dropzone = $('dropzone');
+  var dropzoneInner = $('dropzoneInner');
+  var fileInput = $('fileInput');
+  var previewImg = $('previewImg');
+  var levelOverlay = $('levelOverlay');
+  var scanOverlay = $('scanOverlay');
+  var actions = $('actions');
+  var changeBtn = $('changeBtn');
+  var scanBtn = $('scanBtn');
+  var phasesBox = $('phasesBox');
+  var phaseList = $('phaseList');
+  var errorBox = $('errorBox');
+  var resultBox = $('resultBox');
+  var resultBody = $('resultBody');
+  var historyToggle = $('historyToggle');
+  var historyBadge = $('historyBadge');
+  var historyBox = $('historyBox');
+  var historyContent = $('historyContent');
+  var historyClearBtn = $('historyClearBtn');
+  var symbolSearch = $('symbolSearch');
+  var symbolList = $('symbolList');
+  var lotInput = $('lotInput');
+  var tradeNote = $('tradeNote');
+
+  // ── MT5 trade bridge state ──────────────────────────────────────
+  // window.TradePort is injected by the Android app. Symbols come from the
+  // connected MT5 account; a BUY/SELL verdict auto-executes through it.
+  var tradeState = {
+    symbols: null,
+    selectedSymbol: null,
+    loadError: null
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  function formatCountdown(ms) {
+    var total = Math.max(0, Math.round(ms / 1000));
+    var mm = Math.floor(total / 60);
+    var ss = total % 60;
+    return (mm < 10 ? '0' + mm : mm) + ':' + (ss < 10 ? '0' + ss : ss);
+  }
+  function formatHistoryTime(at) {
+    var diff = Date.now() - at;
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return Math.floor(diff / 86400000) + 'd ago';
+  }
+  function signalColor(action) {
+    return action === 'BUY' ? '#22C55E' : action === 'SELL' ? '#EF4444' : '#9CA3AF';
+  }
+  function signalBg(action) {
+    return action === 'BUY' ? 'rgba(34,197,94,0.12)' :
+           action === 'SELL' ? 'rgba(239,68,68,0.12)' :
+           'rgba(156,163,175,0.10)';
+  }
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function structureLabel(trend) {
+    return trend === 'up' ? 'Uptrend' : trend === 'down' ? 'Downtrend' : 'Sideways range';
+  }
+  function structureLabelUpper(trend) {
+    return trend === 'up' ? 'UPTREND' : trend === 'down' ? 'DOWNTREND' : 'SIDEWAYS';
+  }
+  function beepAndHaptic() {
+    try {
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if (!Ctor) return;
+      var ctx = new Ctor();
+      var now = ctx.currentTime;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.34);
+      osc.onended = function() { try { ctx.close(); } catch (e) {} };
+    } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([10, 30, 20]); } catch (e) {}
+  }
+
+  // ── Rendering ────────────────────────────────────────────────────
+  var PHASES = ['DETECTING CANDLES','READING STRUCTURE','FINDING LEVELS','BUILDING SIGNAL'];
+
+  function renderPhases() {
+    phaseList.innerHTML = '';
+    for (var i = 0; i < PHASES.length; i++) {
+      var status = i < state.scanPhase ? 'done' : i === state.scanPhase ? 'active' : 'pending';
+      var row = document.createElement('div');
+      row.className = 'phase-row';
+      var slot = document.createElement('div');
+      slot.className = 'phase-slot';
+      if (status === 'done') {
+        slot.innerHTML = '<div class="phase-done-ring"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>';
+      } else if (status === 'active') {
+        slot.innerHTML = '<div class="phase-active-dot"></div>';
+      } else {
+        slot.innerHTML = '<div class="phase-pending-dot"></div>';
+      }
+      var label = document.createElement('div');
+      label.className = 'phase-label ' + status;
+      label.textContent = PHASES[i];
+      row.appendChild(slot);
+      row.appendChild(label);
+      phaseList.appendChild(row);
+    }
+  }
+
+  function renderHistory() {
+    if (state.scanHistory.length > 0) {
+      historyBadge.textContent = state.scanHistory.length;
+      historyBadge.classList.remove('hidden');
+      historyClearBtn.classList.remove('hidden');
+    } else {
+      historyBadge.classList.add('hidden');
+      historyClearBtn.classList.add('hidden');
+    }
+    if (state.scanHistory.length === 0) {
+      historyContent.innerHTML = '<div class="history-empty">No scans yet — upload a chart to get started.</div>';
+      return;
+    }
+    var html = '<div class="history-list">';
+    for (var i = 0; i < state.scanHistory.length; i++) {
+      var h = state.scanHistory[i];
+      var c = signalColor(h.action);
+      var r = parseInt(c.slice(1,3),16), g = parseInt(c.slice(3,5),16), b = parseInt(c.slice(5,7),16);
+      var bg = 'rgba(' + r + ',' + g + ',' + b + ',0.08)';
+      var bd = 'rgba(' + r + ',' + g + ',' + b + ',0.4)';
+      var bdg = 'rgba(' + r + ',' + g + ',' + b + ',0.15)';
+      html += '<div class="history-row" style="border-color:' + bd + ';background:' + bg + '">';
+      html += '<div class="history-badge" style="border-color:' + c + ';background:' + bdg + ';color:' + c + '">' + h.action + '</div>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div class="history-headline">' + h.strength.toUpperCase() + ' • ' + structureLabelUpper(h.trend) + '</div>';
+      html += '<div class="history-meta">' + h.confidence + '% conf • ' + h.bullishPercent + '/' + h.bearishPercent + ' • ' + formatHistoryTime(h.at) + '</div>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+    historyContent.innerHTML = html;
+  }
+
+  function renderLevels() {
+    levelOverlay.innerHTML = '';
+    if (!state.insights || !state.insights.levels || !state.insights.levels.length || !state.pickedDataUri) return;
+    var c = signalColor(state.insights.signal.action);
+    for (var i = 0; i < state.insights.levels.length; i++) {
+      var ly = state.insights.levels[i];
+      var pct = Math.max(2, Math.min(98, ly * 100));
+      var line = document.createElement('div');
+      line.className = 'level-line';
+      line.style.top = pct + '%';
+      line.style.borderColor = c;
+      line.style.color = c;
+      var tag = document.createElement('div');
+      tag.className = 'level-tag';
+      tag.style.background = c;
+      tag.textContent = 'L' + (i + 1);
+      line.appendChild(tag);
+      levelOverlay.appendChild(line);
+    }
+  }
+
+  function renderResult() {
+    var data = state.insights;
+    if (!data) {
+      resultBox.classList.add('hidden');
+      return;
+    }
+    resultBox.classList.remove('hidden');
+    var c = signalColor(data.signal.action);
+    var bg = signalBg(data.signal.action);
+    var iconSvg;
+    if (data.signal.action === 'BUY') {
+      iconSvg = '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>';
+    } else if (data.signal.action === 'SELL') {
+      iconSvg = '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>';
+    } else {
+      iconSvg = '<line x1="5" y1="12" x2="19" y2="12"/>';
+    }
+
+    var strengthBars = data.signal.action === 'WAIT' ? 0
+      : data.signal.strength === 'strong' ? 3
+      : data.signal.strength === 'moderate' ? 2 : 1;
+
+    var metaText = data.signal.action === 'WAIT'
+      ? structureLabelUpper(data.trend) + ' • ' + data.volatility.toUpperCase() + ' VOL'
+      : data.signal.strength.toUpperCase() + ' • ' + structureLabelUpper(data.trend) + ' • ' + data.volatility.toUpperCase() + ' VOL';
+
+    // Build signal hero
+    var html = '';
+    html += '<div class="signal-box" id="signalBox" style="background:' + bg + ';border-color:' + c + ';box-shadow:0 0 10px 2px ' + c + 'CC, 0 0 24px 6px ' + c + '55;color:' + c + '">';
+    html += '<div class="signal-pulse" style="border-color:' + c + '"></div>';
+    html += '<div class="particles" id="particlesHost"></div>';
+    html += '<div class="signal-row">';
+    html += '<svg class="signal-icon" viewBox="0 0 24 24" stroke="' + c + '" fill="none" stroke-linecap="round" stroke-linejoin="round">' + iconSvg + '</svg>';
+    html += '<div class="signal-text">';
+    html += '<div class="signal-headline" style="color:' + c + '">' + data.signal.headline + '</div>';
+    html += '<div class="signal-meta" style="color:' + c + 'CC">' + metaText + '</div>';
+    if (data.signal.action !== 'WAIT') {
+      html += '<div class="strength-row">';
+      for (var i = 0; i < 3; i++) {
+        var on = i < strengthBars;
+        html += '<div class="strength-bar' + (on ? '' : ' off') + '" style="background:' + (on ? c : c + '26') + ';color:' + c + '"></div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    // Gauge
+    html += '<div class="gauge" id="gaugeHost">';
+    html += '<svg viewBox="0 0 110 110">';
+    var radius = (110 - 9) / 2;
+    var circumference = 2 * Math.PI * radius;
+    html += '<circle cx="55" cy="55" r="' + radius + '" stroke="rgba(255,255,255,0.08)" stroke-width="9" fill="none"/>';
+    html += '<circle id="gaugeCircle" cx="55" cy="55" r="' + radius + '" stroke="' + c + '" stroke-width="9" fill="none" ';
+    html += 'stroke-dasharray="' + circumference + ' ' + circumference + '" stroke-dashoffset="' + circumference + '" stroke-linecap="round" ';
+    html += 'style="filter: drop-shadow(0 0 6px ' + c + ')"/>';
+    html += '</svg>';
+    html += '<div class="gauge-center">';
+    html += '<div class="gauge-value" id="gaugeValue">0</div>';
+    html += '<div class="gauge-label" style="color:' + c + 'CC">CONF</div>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    // Typewriter rationale
+    html += '<div class="signal-rationale" id="signalRationale"></div>';
+    // Countdown
+    html += '<div class="countdown" id="countdownWrap">';
+    html += '<div class="countdown-label-row">';
+    html += '<svg viewBox="0 0 24 24" stroke="' + c + 'CC" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    html += '<div class="countdown-label" id="countdownLabel" style="color:' + c + 'CC"></div>';
+    html += '</div>';
+    html += '<div class="countdown-track"><div class="countdown-fill" id="countdownFill" style="background:' + c + '"></div></div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Execution status (filled in by maybeExecuteTrade / onTradeResult)
+    html += '<div class="exec-status hidden" id="execStatus"></div>';
+
+    // Summary
+    html += '<div class="summary-text">' + data.summary + '</div>';
+
+    // Mix bar
+    html += '<div class="mix-row">';
+    html += '<div class="mix-bar" style="flex:' + Math.max(1, data.bullishPercent) + ';background:#22C55E"></div>';
+    html += '<div class="mix-bar" style="flex:' + Math.max(1, data.bearishPercent) + ';background:#EF4444"></div>';
+    html += '</div>';
+    html += '<div class="mix-labels"><span>' + data.bullishPercent + '% bullish</span><span>' + data.bearishPercent + '% bearish</span></div>';
+
+    // Stat rows
+    var rows = [
+      { label: 'BIAS', value: data.bias === 'bullish' ? 'Bullish' : data.bias === 'bearish' ? 'Bearish' : 'Balanced' },
+      { label: 'STRUCTURE', value: structureLabel(data.trend) },
+      { label: 'VOLATILITY', value: capitalize(data.volatility) },
+      { label: 'MOMENTUM', value: capitalize(data.momentum) }
+    ];
+    html += '<div class="stat-rows">';
+    for (var j = 0; j < rows.length; j++) {
+      html += '<div class="stat-row"><div class="stat-label">' + rows[j].label + '</div><div class="stat-value">' + rows[j].value + '</div></div>';
+    }
+    html += '</div>';
+    html += '<div class="disclaimer">Descriptive chart diagnostics only — not financial advice or a trade recommendation.</div>';
+
+    resultBody.innerHTML = html;
+
+    // Kick off animated gauge
+    animateGauge(data.confidence, circumference);
+    // Kick off typewriter rationale
+    startTypewriter(data.signal.rationale, $('signalRationale'));
+    // Fire particle burst
+    fireParticles($('particlesHost'), c);
+    // Start countdown
+    startCountdown(c);
+  }
+
+  function animateGauge(target, circumference) {
+    if (timers.gaugeAnim) cancelAnimationFrame(timers.gaugeAnim);
+    var gaugeCircle = $('gaugeCircle');
+    var gaugeValue = $('gaugeValue');
+    if (!gaugeCircle || !gaugeValue) return;
+    var duration = 900;
+    var start = performance.now();
+    function step(now) {
+      var t = Math.min(1, (now - start) / duration);
+      // easeOutCubic
+      var eased = 1 - Math.pow(1 - t, 3);
+      var current = eased * target;
+      gaugeValue.textContent = Math.round(current);
+      var offset = circumference - (current / 100) * circumference;
+      gaugeCircle.setAttribute('stroke-dashoffset', offset);
+      if (t < 1) timers.gaugeAnim = requestAnimationFrame(step);
+      else timers.gaugeAnim = null;
+    }
+    timers.gaugeAnim = requestAnimationFrame(step);
+  }
+
+  function startTypewriter(text, el) {
+    if (timers.typewriter) { clearInterval(timers.typewriter); timers.typewriter = null; }
+    if (!el) return;
+    el.textContent = '';
+    var i = 0;
+    var cursor = '<span class="type-cursor">▌</span>';
+    setTimeout(function() {
+      timers.typewriter = setInterval(function() {
+        i += 1;
+        if (i >= text.length) {
+          el.textContent = text;
+          clearInterval(timers.typewriter);
+          timers.typewriter = null;
+          return;
+        }
+        el.innerHTML = text.slice(0, i).replace(/</g,'&lt;') + cursor;
+      }, 14);
+    }, 120);
+  }
+
+  function fireParticles(host, color) {
+    if (!host) return;
+    host.innerHTML = '';
+    var count = 16;
+    var radius = 150;
+    for (var i = 0; i < count; i++) {
+      var angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+      var r = radius * (0.6 + Math.random() * 0.55);
+      var dx = Math.cos(angle) * r;
+      var dy = Math.sin(angle) * r;
+      var size = 5 + Math.random() * 5;
+      var p = document.createElement('div');
+      p.className = 'particle';
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.background = color;
+      p.style.boxShadow = '0 0 8px ' + color;
+      p.style.setProperty('--pdx', 'calc(-50% + ' + dx + 'px)');
+      p.style.setProperty('--pdy', 'calc(-50% + ' + dy + 'px)');
+      host.appendChild(p);
+      // Trigger animation on next frame
+      (function(node) {
+        requestAnimationFrame(function() { node.classList.add('go'); });
+      })(p);
+    }
+  }
+
+  function startCountdown(color) {
+    if (timers.countdown) { clearInterval(timers.countdown); timers.countdown = null; }
+    state.signalAt = Date.now();
+    function tick() {
+      var label = $('countdownLabel');
+      var fill = $('countdownFill');
+      if (!label || !fill) { clearInterval(timers.countdown); timers.countdown = null; return; }
+      var elapsed = Date.now() - state.signalAt;
+      var remaining = Math.max(0, SIGNAL_TTL_MS - elapsed);
+      label.textContent = 'SIGNAL FRESH FOR ' + formatCountdown(remaining);
+      var pct = Math.max(0, Math.min(100, 100 - (elapsed / SIGNAL_TTL_MS) * 100));
+      fill.style.width = pct + '%';
+      if (remaining <= 0) { clearInterval(timers.countdown); timers.countdown = null; }
+    }
+    tick();
+    timers.countdown = setInterval(tick, 1000);
+  }
+
+  function render() {
+    // Dropzone preview
+    if (state.pickedDataUri) {
+      dropzoneInner.classList.add('hidden');
+      previewImg.src = state.pickedDataUri;
+      previewImg.classList.remove('hidden');
+    } else {
+      dropzoneInner.classList.remove('hidden');
+      previewImg.classList.add('hidden');
+      previewImg.removeAttribute('src');
+    }
+    // Actions
+    if (state.pickedDataUri && !state.scanLoading) actions.classList.remove('hidden');
+    else actions.classList.add('hidden');
+    // Phases
+    if (state.pickedDataUri && state.scanLoading) {
+      phasesBox.classList.remove('hidden');
+      renderPhases();
+    } else {
+      phasesBox.classList.add('hidden');
+    }
+    // Scan overlay
+    if (state.scanLoading && state.pickedDataUri) scanOverlay.classList.remove('hidden');
+    else scanOverlay.classList.add('hidden');
+    // Error
+    if (state.scanError) {
+      errorBox.textContent = state.scanError;
+      errorBox.classList.remove('hidden');
+    } else {
+      errorBox.classList.add('hidden');
+    }
+    // History
+    if (state.historyOpen) historyBox.classList.remove('hidden');
+    else historyBox.classList.add('hidden');
+    renderHistory();
+    renderLevels();
+  }
+
+  // ── Flow ────────────────────────────────────────────────────────
+  function resetScanner() {
+    if (timers.revealTimeout) { clearTimeout(timers.revealTimeout); timers.revealTimeout = null; }
+    if (timers.phaseInterval) { clearInterval(timers.phaseInterval); timers.phaseInterval = null; }
+    if (timers.countdown) { clearInterval(timers.countdown); timers.countdown = null; }
+    if (timers.typewriter) { clearInterval(timers.typewriter); timers.typewriter = null; }
+    state.pickedDataUri = null;
+    state.insights = null;
+    state.scanError = null;
+    state.scanLoading = false;
+    state.scanPhase = -1;
+    state.signalAt = null;
+    resultBox.classList.add('hidden');
+    resultBody.innerHTML = '';
+    render();
+  }
+
+  function commitInsights(result) {
+    state.insights = result;
+    state.scanError = null;
+    var entry = {
+      id: String(Date.now()),
+      at: Date.now(),
+      action: result.signal.action,
+      strength: result.signal.strength,
+      headline: result.signal.headline,
+      confidence: result.confidence,
+      bullishPercent: result.bullishPercent,
+      bearishPercent: result.bearishPercent,
+      trend: result.trend
+    };
+    state.scanHistory = [entry].concat(state.scanHistory).slice(0, 10);
+    try { localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(state.scanHistory)); } catch (e) {}
+    beepAndHaptic();
+    renderResult();
+    render();
+    maybeExecuteTrade(result);
+  }
+
+  function revealWhenReady(result) {
+    var elapsed = Date.now() - scanStartedAt;
+    var remaining = Math.max(0, scanTargetMs - elapsed);
+    if (timers.revealTimeout) clearTimeout(timers.revealTimeout);
+    timers.revealTimeout = setTimeout(function() {
+      timers.revealTimeout = null;
+      state.scanLoading = false;
+      // Mark all phases done briefly
+      state.scanPhase = PHASES.length;
+      render();
+      setTimeout(function() {
+        state.scanPhase = -1;
+        commitInsights(result);
+      }, 700);
+    }, remaining);
+  }
+
+  function startScanningPhaseTicker() {
+    if (timers.phaseInterval) clearInterval(timers.phaseInterval);
+    var target = scanTargetMs || 2000;
+    var interval = Math.max(700, Math.floor((target - 800) / 3));
+    timers.phaseInterval = setInterval(function() {
+      if (state.scanPhase < PHASES.length - 1) {
+        state.scanPhase = state.scanPhase + 1;
+        renderPhases();
+      } else {
+        clearInterval(timers.phaseInterval);
+        timers.phaseInterval = null;
+      }
+    }, interval);
+  }
+
+  // ── MT5 symbol picker + auto-execution ──────────────────────────
+  window.onMt5Symbols = function(list, err) {
+    if (list && list.length) {
+      tradeState.symbols = list;
+      tradeState.loadError = null;
+      symbolSearch.placeholder = 'Search ' + list.length + ' symbols...';
+      tradeNote.textContent = '';
+    } else {
+      tradeState.symbols = null;
+      tradeState.loadError = err || 'Could not load symbols.';
+      symbolSearch.placeholder = 'Symbols unavailable — tap to retry';
+      tradeNote.textContent = tradeState.loadError;
+    }
+  };
+
+  window.onTradeResult = function(ok, message) {
+    setExecStatus(ok ? 'done' : 'failed', message);
+  };
+
+  function renderSymbolList(filter) {
+    if (!tradeState.symbols) { symbolList.classList.add('hidden'); return; }
+    var f = (filter || '').toLowerCase();
+    var html = '';
+    var shown = 0;
+    for (var i = 0; i < tradeState.symbols.length && shown < 50; i++) {
+      var s = tradeState.symbols[i];
+      if (!f || s.toLowerCase().indexOf(f) !== -1) {
+        html += '<div class="symbol-row" data-symbol="' + s.replace(/"/g, '&quot;') + '">' + s + '</div>';
+        shown++;
+      }
+    }
+    if (!shown) html = '<div class="symbol-empty">No symbols match.</div>';
+    symbolList.innerHTML = html;
+    symbolList.classList.remove('hidden');
+  }
+
+  function setExecStatus(kind, text) {
+    var el = $('execStatus');
+    if (!el) return;
+    el.className = 'exec-status ' + kind;
+    el.textContent = text;
+    el.classList.remove('hidden');
+  }
+
+  function maybeExecuteTrade(result) {
+    if (!window.TradePort) return;
+    var action = result.signal.action;
+    if (action !== 'BUY' && action !== 'SELL') {
+      setExecStatus('waitmode', 'NO TRADE — WAIT SIGNAL');
+      return;
+    }
+    if (!tradeState.selectedSymbol) return;
+    var lots = (lotInput.value || '0.01').trim().replace(',', '.');
+    setExecStatus('executing', 'EXECUTING ' + action + ' ' + lots + ' ON ' + tradeState.selectedSymbol + '...');
+    // Exact broker casing — never uppercase the symbol.
+    window.TradePort.executeTrade(tradeState.selectedSymbol, action === 'BUY' ? 'Buy' : 'Sell', lots);
+  }
+
+  function handleScan() {
+    if (!state.pickedDataUri) return;
+    if (window.TradePort) {
+      if (!tradeState.selectedSymbol) {
+        state.scanError = 'Select a symbol from your MT5 account before scanning.';
+        render();
+        return;
+      }
+      var lotsVal = parseFloat((lotInput.value || '').trim().replace(',', '.'));
+      if (!lotsVal || lotsVal <= 0) {
+        state.scanError = 'Enter a valid lot size (e.g. 0.01).';
+        render();
+        return;
+      }
+    }
+    scanTargetMs = 10000 + Math.floor(Math.random() * 10001);
+    scanStartedAt = Date.now();
+    state.scanLoading = true;
+    state.scanError = null;
+    state.insights = null;
+    state.scanPhase = 0;
+    resultBox.classList.add('hidden');
+    resultBody.innerHTML = '';
+    render();
+    startScanningPhaseTicker();
+
+    analyzeDataUri(state.pickedDataUri).then(function(result) {
+      revealWhenReady(result);
+    }).catch(function(err) {
+      state.scanError = (err && err.message) || 'Failed to analyze chart. Please try again.';
+      state.scanLoading = false;
+      state.scanPhase = -1;
+      if (timers.phaseInterval) { clearInterval(timers.phaseInterval); timers.phaseInterval = null; }
+      render();
+    });
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    state.scanError = null;
+    state.insights = null;
+    resultBox.classList.add('hidden');
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      state.pickedDataUri = e.target.result;
+      render();
+    };
+    reader.onerror = function() {
+      state.scanError = 'Could not read the image. Please try again.';
+      render();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── Wiring ──────────────────────────────────────────────────────
+  dropzone.addEventListener('click', function(e) {
+    // Let the user click the preview to change images too
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', function(e) {
+    var f = e.target.files && e.target.files[0];
+    handleFile(f);
+    fileInput.value = '';
+  });
+  changeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    fileInput.click();
+  });
+  scanBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    handleScan();
+  });
+  historyToggle.addEventListener('click', function() {
+    state.historyOpen = !state.historyOpen;
+    render();
+  });
+  historyClearBtn.addEventListener('click', function() {
+    state.scanHistory = [];
+    try { localStorage.removeItem(SCAN_HISTORY_KEY); } catch (e) {}
+    render();
+  });
+
+  // Symbol picker wiring
+  symbolSearch.addEventListener('focus', function() {
+    if (!tradeState.symbols && window.TradePort) {
+      // Retry loading if the first attempt failed
+      tradeNote.textContent = '';
+      symbolSearch.placeholder = 'Loading symbols...';
+      try { window.TradePort.requestSymbols(); } catch (e) {}
+      return;
+    }
+    renderSymbolList(symbolSearch.value);
+  });
+  symbolSearch.addEventListener('input', function() {
+    // Typed text only counts as a selection when it exactly matches a
+    // broker symbol (casing included) — otherwise it's just a filter.
+    tradeState.selectedSymbol =
+      tradeState.symbols && tradeState.symbols.indexOf(symbolSearch.value) !== -1
+        ? symbolSearch.value : null;
+    renderSymbolList(symbolSearch.value);
+  });
+  symbolList.addEventListener('click', function(e) {
+    var row = e.target.closest ? e.target.closest('.symbol-row') : null;
+    if (!row) return;
+    var s = row.getAttribute('data-symbol');
+    if (!s) return;
+    tradeState.selectedSymbol = s;
+    symbolSearch.value = s;
+    symbolList.classList.add('hidden');
+    state.scanError = null;
+    render();
+  });
+  document.addEventListener('click', function(e) {
+    if (!symbolList.contains(e.target) && e.target !== symbolSearch) {
+      symbolList.classList.add('hidden');
+    }
+  });
+
+  // Pull the broker symbol universe from the connected MT5 account
+  if (window.TradePort) {
+    try { window.TradePort.requestSymbols(); } catch (e) {}
+  } else {
+    symbolSearch.placeholder = 'MT5 bridge unavailable';
+    tradeNote.textContent = 'Trading bridge not available — open the scanner from the app.';
+  }
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>

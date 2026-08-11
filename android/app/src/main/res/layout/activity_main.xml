@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_root"
+    android:background="@drawable/ios26_crimson_atmosphere"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.MainActivity"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:padding="24dp">
+
+    <ImageView
+        android:id="@+id/logo_img"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="60dp"
+        android:scaleType="centerInside"
+        android:src="@mipmap/ic_launcher_foreground" />
+
+    <TextView
+        android:id="@+id/note"
+        android:layout_width="match_parent"
+        android:layout_below="@+id/logo_img"
+        android:layout_height="wrap_content"
+        android:text="TRADE PORT EA"
+        android:textAlignment="center"
+        android:textSize="22sp"
+        android:layout_marginTop="16dp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:layout_marginBottom="16dp"
+        android:textColor="@color/white"/>
+
+    <TextView
+        android:id="@+id/note1"
+        android:layout_width="match_parent"
+        android:layout_below="@+id/note"
+        android:layout_height="wrap_content"
+        android:text="A cutting-edge mobile hosting platform designed to empower traders with a secure, reliable, and user-friendly environment for running their automated trading systems. Seamlessly manage your Expert Advisors (EAs) on the go, ensuring optimal performance and peace of mind."
+        android:textAlignment="center"
+        android:textSize="14sp"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="20dp"
+        android:textColor="@color/glass_text_secondary"/>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/draw_btn"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="40dp"
+        android:background="@drawable/ios26_glass_button"
+        android:drawableEnd="@drawable/ic_baseline_cancel_24"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center"
+        android:text="START NOW"
+        android:textColor="@color/white"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+</RelativeLayout>

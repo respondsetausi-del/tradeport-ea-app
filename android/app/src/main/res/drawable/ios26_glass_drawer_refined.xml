@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS 26 Glass Drawer - Refined navigation panel -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Very faint right edge glow -->
+    <item
+        android:right="-2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="0"
+                android:startColor="#00000000"
+                android:endColor="#12880000" />
+        </shape>
+    </item>
+    
+    <!-- Glass surface - translucent -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E8101010" />
+        </shape>
+    </item>
+    
+    <!-- Inner vertical gradient - top darker, bottom lighter -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#00000000"
+                android:centerColor="#04FFFFFF"
+                android:endColor="#08FFFFFF" />
+        </shape>
+    </item>
+    
+    <!-- Subtle top highlight -->
+    <item
+        android:bottom="-1dp"
+        android:left="-1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#08FFFFFF"
+                android:endColor="#00000000" />
+            <size android:height="80dp" />
+        </shape>
+    </item>
+    
+</layer-list>
