@@ -17,6 +17,8 @@ import {
   decimalsOf, stopPrice, targetPrice, trailTo,
   realisedSince, consecutiveLosses, isWeekendFlat,
 } from './risk';
+import { encrypt, decrypt, isEncrypted, encryptionAvailable } from './secrets';
+import { recordIntent, settle, markClosed, buildTag, newRunId } from './journal';
 
 export interface RiskConfig {
   slAtrMult: number;        // protective stop distance, x ATR. 0 disables (not advised)
@@ -65,6 +67,8 @@ interface Run {
   creds: SessionCreds | null;
   lastSessionCheck: number;
 
+  runId: string;
+  seq: number;
   risk: RiskConfig;
   entryPrice: number | null;
   currentStop: number | null;
@@ -102,14 +106,20 @@ function persist(id: string, r: Run): void {
     try {
       await ensureTable();
       const pool = await getPool();
-      // NOTE: creds are stored so the run can revive its own broker session
-      // while the app is closed. Encrypt this column before shipping.
+      // Credentials are stored so the run can revive its own broker session
+      // while every device is asleep, and are encrypted at rest. With no
+      // CREDS_KEY set we store NOTHING rather than fall back to plaintext —
+      // the run then cannot self-revive, which is the safer failure.
+      const encCreds = r.creds ? encrypt(JSON.stringify(r.creds)) : null;
+      if (r.creds && !encCreds) {
+        console.error('[Strat:srv] CREDS_KEY not set — credentials NOT persisted; this run cannot revive its own session');
+      }
       const data = JSON.stringify({
         symbol: r.symbol, volume: r.volume, count: r.count, comment: r.comment,
         cfg: r.cfg, timeframeMin: r.timeframeMin, htfMin: r.htfMin,
         evalMs: r.evalMs, alwaysIn: r.alwaysIn, maxWaitMs: r.maxWaitMs,
         flatWhenNoSignal: r.flatWhenNoSignal, reenterEachBar: r.reenterEachBar,
-        trades: r.trades, startedAt: r.startedAt, creds: r.creds, risk: r.risk,
+        trades: r.trades, startedAt: r.startedAt, creds: encCreds, risk: r.risk,
       });
       await pool.query(
         'INSERT INTO tp_mt5_strategies (uuid, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
@@ -181,6 +191,7 @@ async function closeUntilFlat(id: string, r: Run): Promise<FlatCheck> {
         .catch((e: any) => { console.error(`[Strat:srv] ${id} close ${t}:`, e?.message || e); return { t, ok: false }; }),
     ));
     r.tickets = results.filter((x) => !x.ok).map((x) => x.t);
+    await markClosed(results.filter((x) => x.ok).map((x) => x.t));
   }
 
   let unreadable = false;
@@ -201,10 +212,34 @@ async function closeUntilFlat(id: string, r: Run): Promise<FlatCheck> {
 }
 
 async function openDirection(id: string, r: Run, dir: Direction): Promise<void> {
+  // Write intent BEFORE sending. If the response never arrives, this row is the
+  // only record that an order might exist at the broker.
+  const orders = Array.from({ length: r.count }, (_, i) => {
+    r.seq += 1;
+    return {
+      key: `${id.slice(0, 8)}-${r.runId}-${r.seq}`,
+      tag: buildTag(r.comment, r.runId, r.seq),
+    };
+  });
+  await Promise.all(orders.map((o) =>
+    recordIntent(id, o.key, r.symbol, dir, r.volume, o.tag),
+  ));
+
   const results: any[] = await Promise.all(
-    Array.from({ length: r.count }, () =>
-      orderSend({ id, symbol: r.symbol, operation: dir, volume: r.volume, comment: r.comment })
-        .catch((e: any) => { console.error(`[Strat:srv] ${id} open error:`, e?.message || e); return null; }),
+    orders.map((o) =>
+      orderSend({ id, symbol: r.symbol, operation: dir, volume: r.volume, comment: o.tag })
+        .then(async (res: any) => {
+          const ticket = Number(res?.ticket);
+          if (ticket > 0) await settle(o.key, 'filled', ticket, Number(res?.openPrice) || null);
+          else await settle(o.key, 'rejected', null, null, String(res?.error || res?.message || 'no ticket'));
+          return res;
+        })
+        .catch(async (e: any) => {
+          console.error(`[Strat:srv] ${id} open error:`, e?.message || e);
+          // NOT 'rejected' — we genuinely do not know. It may be live.
+          await settle(o.key, 'unknown', null, null, String(e?.message || e).slice(0, 200));
+          return null;
+        }),
     ),
   );
 
@@ -683,6 +718,8 @@ export function startStrategy(p: StartParams) {
       maxConsecutiveLosses: Math.max(0, p.maxConsecutiveLosses ?? 0),
       fridayFlatHourUtc: Math.max(0, p.fridayFlatHourUtc ?? 0),
     },
+    runId: newRunId(Date.now()),
+    seq: 0,
     entryPrice: null,
     currentStop: null,
     decimals: 2,
@@ -765,12 +802,24 @@ export async function resumeStrategies(): Promise<void> {
         trades: Number(c.trades) || 0,
         startedAt: Number(c.startedAt) || Date.now(),
         history: [],
-        creds: c.creds || null,
+        creds: (() => {
+          if (!c.creds) return null;
+          if (isEncrypted(c.creds)) {
+            const plain = decrypt(c.creds);
+            if (!plain) { console.error(`[Strat:srv] ${id} stored credentials could not be decrypted — no auto-reconnect`); return null; }
+            try { return JSON.parse(plain); } catch { return null; }
+          }
+          // Legacy plaintext row from before encryption existed.
+          console.warn(`[Strat:srv] ${id} credentials stored in plaintext — re-save to encrypt`);
+          return c.creds;
+        })(),
         lastSessionCheck: 0,
         risk: c.risk || {
           slAtrMult: 1.5, tpAtrMult: 0, trailStartAtr: 1.0, trailAtr: 1.0,
           maxDailyLoss: 0, maxConsecutiveLosses: 0, fridayFlatHourUtc: 0,
         },
+        runId: newRunId(Date.now()),
+        seq: 0,
         entryPrice: null,
         currentStop: null,
         decimals: 2,
