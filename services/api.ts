@@ -329,6 +329,19 @@ class ApiService {
     return data;
   }
 
+  /**
+   * Everything that must be true before starting, as a list the UI can show
+   * passing or failing. Blockers include "something else is already trading
+   * this account", which is invisible from inside either engine.
+   */
+  async preflight(uuid: string, symbol: string, volume: number): Promise<any> {
+    const qs = new URLSearchParams({ id: uuid, symbol, volume: String(volume) });
+    const res = await fetch(`${BASE_URL}/api/mt5/strategy/preflight?${qs.toString()}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Preflight failed');
+    return data;
+  }
+
   /** Public view only — reveals nothing about how direction is decided. */
   async getStrategyStatus(uuid: string): Promise<any> {
     const res = await fetch(`${BASE_URL}/api/mt5/strategy/status?id=${encodeURIComponent(uuid)}`);

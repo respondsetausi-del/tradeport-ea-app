@@ -737,6 +737,41 @@ export function startStrategy(p: StartParams) {
   return { ok: true, running: true };
 }
 
+/**
+ * What the robot did this session, in plain numbers.
+ *
+ * Taken from ClosedOrders rather than anything we counted ourselves, so it
+ * reflects what the broker actually settled — including trades closed by a
+ * stop while this process was asleep, which our own counters would miss.
+ */
+async function sessionSummary(id: string, r: Run) {
+  try {
+    const closed = await getClosedOrders(id);
+    if (!Array.isArray(closed)) return null;
+    const since = r.startedAt;
+    const mine = closed.filter((o: any) => {
+      if (o?.symbol !== r.symbol || !o?.closeTime) return false;
+      const t = new Date(o.closeTime).getTime();
+      return Number.isFinite(t) && t >= since;
+    });
+    const net = (o: any) => (o.profit || 0) + (o.swap || 0) + (o.commission || 0);
+    const results = mine.map(net);
+    const wins = results.filter((v) => v > 0).length;
+    return {
+      trades: results.length,
+      wins,
+      losses: results.filter((v) => v < 0).length,
+      winRate: results.length ? Math.round((wins / results.length) * 100) : 0,
+      net: Number(results.reduce((a, b) => a + b, 0).toFixed(2)),
+      best: results.length ? Number(Math.max(...results).toFixed(2)) : 0,
+      worst: results.length ? Number(Math.min(...results).toFixed(2)) : 0,
+      minutes: Math.round((Date.now() - since) / 60000),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function stopStrategy(id: string, closeOpen = true) {
   const r = runs.get(id);
   if (!r) return { ok: true, wasRunning: false };
@@ -744,10 +779,12 @@ export async function stopStrategy(id: string, closeOpen = true) {
   if (r.timer) { clearTimeout(r.timer); r.timer = null; }
   let state: FlatCheck = 'FLAT';
   if (closeOpen) state = await closeUntilFlat(id, r);
+  const summary = await sessionSummary(id, r);
+  const decisions = r.history.slice(-25);
   runs.delete(id);
   unpersist(id);
   console.log(`[Strat:srv] STOP ${id} (${state})`);
-  return { ok: true, wasRunning: true, flat: state === 'FLAT', flatCheck: state };
+  return { ok: true, wasRunning: true, flat: state === 'FLAT', flatCheck: state, summary, decisions };
 }
 
 /**

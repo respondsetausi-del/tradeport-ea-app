@@ -17,6 +17,10 @@ export default function HomeScreen() {
   const { eas, isFirstTime, setIsFirstTime, removeEA, isBotActive, setBotActive, setActiveEA, user, mt5Account, mt4Account, deactivateMT5Symbol, mt5Symbols, ensureMT5Connected } = useApp();
   const [scannerGateMsg, setScannerGateMsg] = useState<string | null>(null);
   const [quickStartOpen, setQuickStartOpen] = useState<boolean>(false);
+  // Live robot state, polled from the server. The robot outlives this app, so
+  // the server is the only thing that knows what it is doing.
+  const [robot, setRobot] = useState<any | null>(null);
+  const [sessionSummary, setSessionSummary] = useState<any | null>(null);
 
   // START → quick-config popup (every time) → confirm → hand the symbol to the
   // server-side strategy engine. STOP → close + halt.
@@ -42,6 +46,22 @@ export default function HomeScreen() {
     // before handing the UUID to the server-side engine.
     const fresh = await ensureMT5Connected();
     if (fresh) uuid = fresh;
+    // Pre-flight: refuse to start on a problem the user can still fix, and say
+    // which one. Starting blind is how you end up debugging a silent no-trade.
+    try {
+      const pre = await apiService.preflight(uuid, symbol, lot);
+      if (!pre?.ok) {
+        const failed = (pre?.checks || []).filter((c: any) => c.blocking && !c.ok);
+        setScannerGateMsg(failed.map((c: any) => c.detail || c.label).join(' — ') || 'Cannot start right now.');
+        setBotActive(false);
+        return;
+      }
+    } catch (e: any) {
+      setScannerGateMsg('Could not check your account before starting. Try again.');
+      setBotActive(false);
+      return;
+    }
+    setSessionSummary(null);
     try {
       await apiService.startStrategy(uuid, {
         symbol, volume: lot, count,
@@ -56,11 +76,43 @@ export default function HomeScreen() {
     }
   }, [mt5Account?.uuid, mt5Account?.server, mt5Account?.login, mt5Account?.password, mt5Symbols, deactivateMT5Symbol, setBotActive, eas, ensureMT5Connected]);
 
+  // The robot runs on the server and outlives this app, so its state is polled
+  // rather than held here. Public view only — it carries no strategy detail.
+  useEffect(() => {
+    const uuid = mt5Account?.uuid;
+    if (!uuid) { setRobot(null); return; }
+    let alive = true;
+    const tick = async () => {
+      try {
+        const s = await apiService.getStrategyStatus(uuid);
+        if (!alive) return;
+        setRobot(s?.running ? s : null);
+        // Trust the server over local state: the robot may have halted itself
+        // on a loss limit while nobody was looking.
+        if (typeof s?.running === 'boolean' && s.running !== isBotActive) setBotActive(s.running);
+      } catch { /* transient — keep the last known state */ }
+    };
+    tick();
+    const h = setInterval(tick, 15000);
+    return () => { alive = false; clearInterval(h); };
+  }, [mt5Account?.uuid, isBotActive, setBotActive]);
+
   const handleToggleBot = useCallback(async () => {
     if (isBotActive) {
       setBotActive(false);
       const uuid = mt5Account?.uuid;
-      if (uuid) { try { await apiService.stopStrategy(uuid); } catch (e: any) { console.error('[stop] stopStrategy error:', e?.message || e); } }
+      if (uuid) {
+        try {
+          const res = await apiService.stopStrategy(uuid);
+          setRobot(null);
+          if (res?.summary) setSessionSummary(res.summary);
+          // `flat: false` means the server could NOT confirm the account is
+          // empty. Telling the user "all closed" there is a lie they act on.
+          if (res?.flat === false) {
+            setScannerGateMsg('Stopped, but some trades may still be open. Check MetaTrader.');
+          }
+        } catch (e: any) { console.error('[stop] stopStrategy error:', e?.message || e); }
+      }
       return;
     }
     if (!mt5Account?.uuid) { setScannerGateMsg('Connect your MT5 account before starting.'); return; }
@@ -368,6 +420,16 @@ export default function HomeScreen() {
               <View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{primaryEA.name}</Text>
                 <Text style={{ fontSize: 7, fontWeight: '600', letterSpacing: 0.6, color: isBotActive ? '#16A34A' : 'rgba(255,255,255,0.4)' }}>{isBotActive ? 'RUNNING' : 'IDLE'}</Text>
+                {robot ? (
+                  <Text style={{ fontSize: 8, fontWeight: '500', color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
+                    {robot.status}{robot.direction ? ` · ${robot.symbol}` : ''}
+                  </Text>
+                ) : null}
+                {!isBotActive && sessionSummary ? (
+                  <Text style={{ fontSize: 8, fontWeight: '500', color: sessionSummary.net >= 0 ? '#16A34A' : '#DC2626', marginTop: 2 }}>
+                    {`Last session: ${sessionSummary.trades} trades · ${sessionSummary.winRate}% won · ${sessionSummary.net >= 0 ? '+' : ''}${sessionSummary.net}`}
+                  </Text>
+                ) : null}
               </View>
             </View>
 
