@@ -125,6 +125,24 @@ export interface LicenseAuthResponse {
   data?: LicenseData;
 }
 
+export interface FundamentalEvent {
+  title: string;
+  currency: string;
+  date: string;
+  impact: 'High' | 'Medium' | 'Low' | 'Holiday' | 'Non-Economic';
+  forecast: string;
+  previous: string;
+  actual?: string;
+}
+
+export interface FundamentalsResponse {
+  message: 'accept' | 'error';
+  source?: string;
+  cached?: boolean;
+  updatedAt?: string;
+  events: FundamentalEvent[];
+}
+
 // ── API Service ─────────────────────────────────────────────
 class ApiService {
   async authenticate(authBody: AuthBody): Promise<Account> {
@@ -241,6 +259,37 @@ class ApiService {
       return data;
     } catch {
       return { message: 'error' };
+    }
+  }
+
+  // ── Fundamentals: free Forex Factory economic calendar ──
+  // Prefer our server proxy (cached, CORS-safe on web); fall back to hitting
+  // the free feed directly so native builds work without a BASE_URL.
+  async getFundamentals(): Promise<FundamentalsResponse> {
+    try {
+      const res = await fetch(`${BASE_URL}/api/fundamentals`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+      const data = (await res.json()) as FundamentalsResponse;
+      if (data?.message === 'accept' && Array.isArray(data.events)) return data;
+      throw new Error('Proxy returned no events');
+    } catch {
+      const feed = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+      const res = await fetch(feed, { headers: { 'Accept': 'application/json' } });
+      const raw = (await res.json()) as any[];
+      const events: FundamentalEvent[] = (Array.isArray(raw) ? raw : [])
+        .filter((e) => e?.title && e?.date && !Number.isNaN(Date.parse(e.date)))
+        .map((e) => ({
+          title: String(e.title).trim(),
+          currency: String(e.country || '').trim().toUpperCase(),
+          date: String(e.date),
+          impact: (e.impact || 'Low') as FundamentalEvent['impact'],
+          forecast: String(e.forecast ?? '').trim(),
+          previous: String(e.previous ?? '').trim(),
+        }))
+        .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+      return { message: 'accept', source: 'forexfactory', updatedAt: new Date().toISOString(), events };
     }
   }
 
