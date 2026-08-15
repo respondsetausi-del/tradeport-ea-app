@@ -1371,6 +1371,15 @@ async function handleApi(request: Request): Promise<Response> {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
+    // Fundamentals: free economic calendar feed (proxied + cached)
+    if (pathname === '/api/fundamentals') {
+      const route = await import('./app/api/fundamentals/route.ts');
+      if (request.method === 'GET' && typeof route.GET === 'function') {
+        return route.GET(request) as Promise<Response>;
+      }
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
     // Add symbols routing
     if (pathname === '/api/symbols') {
       const route = await import('./app/api/symbols/route.ts');
