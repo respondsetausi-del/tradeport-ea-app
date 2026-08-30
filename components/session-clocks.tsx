@@ -26,77 +26,88 @@ interface Session {
   open: number;
   /** Closing hour, UTC. Wraps past midnight when close < open. */
   close: number;
-  Flag: (p: { size: number }) => React.ReactElement;
+  Flag: (p: FlagProps) => React.ReactElement;
 }
 
 // ── Flags ──────────────────────────────────────────────────────────────
-// Square, edge to edge: the coin's round face clips them.
+// Drawn on a 3:2 canvas, the real proportion of every flag here. The coin
+// crops from the same source with preserveAspectRatio="xMidYMid slice", so
+// there is one definition rather than a square version and a wide version
+// that can drift apart.
 
-function FlagAU({ size }: { size: number }) {
+type FlagProps = { width: number; height: number; crop?: boolean };
+
+const fit = (crop?: boolean) => (crop ? 'xMidYMid slice' : 'xMidYMid meet');
+
+function FlagAU({ width, height, crop }: FlagProps) {
   const star = (cx: number, cy: number, r: number) => (
-    <Circle cx={cx} cy={cy} r={r} fill="#ffffff" />
+    <Circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill="#ffffff" />
   );
   return (
-    <Svg width={size} height={size} viewBox="0 0 60 60">
-      <Rect width="60" height="60" fill="#00247D" />
+    <Svg width={width} height={height} viewBox="0 0 90 60" preserveAspectRatio={fit(crop)}>
+      <Rect width="90" height="60" fill="#00247D" />
+      {/* Union canton fills the upper hoist quarter. */}
       <G>
-        <Path d="M0 0 L30 20 M30 0 L0 20" stroke="#ffffff" strokeWidth="4" />
-        <Path d="M0 0 L30 20 M30 0 L0 20" stroke="#CF142B" strokeWidth="2" />
-        <Rect x="12.5" y="0" width="5" height="20" fill="#ffffff" />
-        <Rect x="0" y="7.5" width="30" height="5" fill="#ffffff" />
-        <Rect x="13.75" y="0" width="2.5" height="20" fill="#CF142B" />
-        <Rect x="0" y="8.75" width="30" height="2.5" fill="#CF142B" />
+        <Path d="M0 0 L45 30 M45 0 L0 30" stroke="#ffffff" strokeWidth="6" />
+        <Path d="M0 0 L45 30 M45 0 L0 30" stroke="#CF142B" strokeWidth="3" />
+        <Rect x="19" y="0" width="7" height="30" fill="#ffffff" />
+        <Rect x="0" y="11.5" width="45" height="7" fill="#ffffff" />
+        <Rect x="20.75" y="0" width="3.5" height="30" fill="#CF142B" />
+        <Rect x="0" y="13.25" width="45" height="3.5" fill="#CF142B" />
       </G>
-      {star(15, 44, 4)}
-      {star(44, 12, 2.6)}
-      {star(50, 30, 2.6)}
-      {star(41, 45, 2.6)}
-      {star(46, 39, 1.6)}
+      {/* Commonwealth Star below the canton, Southern Cross on the fly. */}
+      {star(22, 45, 5)}
+      {star(66, 13, 3)}
+      {star(76, 28, 3)}
+      {star(64, 44, 3)}
+      {star(71, 37, 1.8)}
     </Svg>
   );
 }
 
-function FlagJP({ size }: { size: number }) {
+function FlagJP({ width, height, crop }: FlagProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 60 60">
-      <Rect width="60" height="60" fill="#ffffff" />
-      <Circle cx="30" cy="30" r="15" fill="#BC002D" />
+    <Svg width={width} height={height} viewBox="0 0 90 60" preserveAspectRatio={fit(crop)}>
+      <Rect width="90" height="60" fill="#ffffff" />
+      <Circle cx="45" cy="30" r="18" fill="#BC002D" />
     </Svg>
   );
 }
 
-function FlagGB({ size }: { size: number }) {
+function FlagGB({ width, height, crop }: FlagProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 60 60">
-      <Rect width="60" height="60" fill="#00247D" />
-      <Path d="M0 0 L60 60 M60 0 L0 60" stroke="#ffffff" strokeWidth="12" />
-      <Path d="M0 0 L60 60 M60 0 L0 60" stroke="#CF142B" strokeWidth="6" />
-      <Rect x="25" y="0" width="10" height="60" fill="#ffffff" />
-      <Rect x="0" y="25" width="60" height="10" fill="#ffffff" />
-      <Rect x="27" y="0" width="6" height="60" fill="#CF142B" />
-      <Rect x="0" y="27" width="60" height="6" fill="#CF142B" />
+    <Svg width={width} height={height} viewBox="0 0 90 60" preserveAspectRatio={fit(crop)}>
+      <Rect width="90" height="60" fill="#00247D" />
+      <Path d="M0 0 L90 60 M90 0 L0 60" stroke="#ffffff" strokeWidth="12" />
+      <Path d="M0 0 L90 60 M90 0 L0 60" stroke="#CF142B" strokeWidth="6" />
+      <Rect x="37" y="0" width="16" height="60" fill="#ffffff" />
+      <Rect x="0" y="22" width="90" height="16" fill="#ffffff" />
+      <Rect x="40" y="0" width="10" height="60" fill="#CF142B" />
+      <Rect x="0" y="25" width="90" height="10" fill="#CF142B" />
     </Svg>
   );
 }
 
-function FlagUS({ size }: { size: number }) {
+function FlagUS({ width, height, crop }: FlagProps) {
   const stripes = [];
   for (let i = 0; i < 13; i++) {
     stripes.push(
-      <Rect key={i} x="0" y={(60 / 13) * i} width="60" height={60 / 13}
+      <Rect key={i} x="0" y={(60 / 13) * i} width="90" height={60 / 13}
         fill={i % 2 === 0 ? '#B22234' : '#ffffff'} />,
     );
   }
   const stars = [];
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 5; c++) {
-      stars.push(<Circle key={`${r}-${c}`} cx={4 + c * 5.5} cy={4 + r * 6} r="1.5" fill="#ffffff" />);
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 6; c++) {
+      stars.push(
+        <Circle key={`${r}-${c}`} cx={4 + c * 6} cy={3.5 + r * 6} r="1.6" fill="#ffffff" />,
+      );
     }
   }
   return (
-    <Svg width={size} height={size} viewBox="0 0 60 60">
+    <Svg width={width} height={height} viewBox="0 0 90 60" preserveAspectRatio={fit(crop)}>
       {stripes}
-      <Rect x="0" y="0" width="30" height={(60 / 13) * 7} fill="#3C3B6E" />
+      <Rect x="0" y="0" width="38" height={(60 / 13) * 7} fill="#3C3B6E" />
       {stars}
     </Svg>
   );
@@ -147,8 +158,8 @@ function SessionCoin({
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(index * 380),
-        Animated.timing(rise, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(rise, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(rise, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+        Animated.timing(rise, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
       ]),
     );
     loop.start();
@@ -174,7 +185,7 @@ function SessionCoin({
     <View style={styles.coin}>
       <Animated.View style={{ transform: [{ translateY: y }] }}>
         <View style={[styles.face, ring, !open && styles.dormant]}>
-          <Flag size={SIZE} />
+          <Flag width={SIZE} height={SIZE} crop />
         </View>
       </Animated.View>
 
@@ -190,6 +201,115 @@ function SessionCoin({
         {open ? `OPEN · ${formatFlip(mins)}` : `IN ${formatFlip(mins)}`}
       </Text>
     </View>
+  );
+}
+
+/**
+ * The open session's flag, full and flying.
+ *
+ * The coins below crop each flag into a disc, which is right for a row of four
+ * but loses the flag itself. This shows the current one whole, at proper 3:2,
+ * with a flutter.
+ *
+ * The flutter is a skew oscillation plus a travelling highlight rather than a
+ * real cloth simulation: React Native cannot distort per-column, and at this
+ * size a skew and a moving sheen read as fabric while a mesh warp would be a
+ * lot of machinery for a 100px flag.
+ *
+ * When more than one desk is open it cycles through them, because "the current
+ * session" is genuinely plural during the London/New York overlap and picking
+ * one would be arbitrary.
+ */
+function CurrentSessionFlag({
+  openRows,
+  accent,
+}: {
+  openRows: { session: Session; mins: number }[];
+  accent: string;
+}) {
+  const [index, setIndex] = useState(0);
+  const wave = useRef(new Animated.Value(0)).current;
+  const sheen = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(1)).current;
+
+  // Flutter: a continuous, slightly irregular skew so it does not read as a
+  // metronome.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(wave, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+        Animated.timing(wave, { toValue: -1, duration: 1700, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+        Animated.timing(wave, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [wave]);
+
+  // A highlight crossing the cloth, on a longer beat than the flutter.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(sheen, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+        Animated.timing(sheen, { toValue: 0, duration: 0, useNativeDriver: false }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [sheen]);
+
+  // Cycle through the open desks, cross-fading.
+  useEffect(() => {
+    if (openRows.length < 2) { setIndex(0); return; }
+    const id = setInterval(() => {
+      Animated.sequence([
+        Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: false }),
+        Animated.timing(fade, { toValue: 1, duration: 320, useNativeDriver: false }),
+      ]).start();
+      // Swap at the darkest point so the change is not seen mid-fade.
+      setTimeout(() => setIndex((i) => (i + 1) % openRows.length), 260);
+    }, 4200);
+    return () => clearInterval(id);
+  }, [openRows.length, fade]);
+
+  if (openRows.length === 0) return null;
+
+  const row = openRows[Math.min(index, openRows.length - 1)];
+  const { Flag } = row.session;
+  const W = 108;
+  const H = 72;
+
+  const tilt = wave.interpolate({ inputRange: [-1, 1], outputRange: ['-2.2deg', '2.2deg'] });
+  const furl = wave.interpolate({ inputRange: [-1, 1], outputRange: [0.955, 1] });
+  const lift = wave.interpolate({ inputRange: [-1, 1], outputRange: [2, -2] });
+  const sheenX = sheen.interpolate({ inputRange: [0, 1], outputRange: [-W, W * 1.3] });
+
+  return (
+    <Animated.View style={[heroStyles.wrap, { opacity: fade }]}>
+      <Animated.View
+        style={[
+          heroStyles.cloth,
+          { borderColor: accent, transform: [{ rotate: tilt }, { scaleX: furl }, { translateY: lift }] },
+        ]}
+      >
+        <Flag width={W} height={H} />
+        {/* Travelling sheen, clipped to the cloth. */}
+        <Animated.View
+          style={[heroStyles.sheen, { transform: [{ translateX: sheenX }, { rotate: '14deg' }] }]}
+          pointerEvents="none"
+        />
+      </Animated.View>
+
+      <Text style={[heroStyles.city, { color: accent }]} numberOfLines={1}>
+        {row.session.city} OPEN
+      </Text>
+      <Text style={heroStyles.sub} numberOfLines={1}>
+        {openRows.length > 1
+          ? `${openRows.length} desks trading · closes in ${formatFlip(row.mins)}`
+          : `Closes in ${formatFlip(row.mins)}`}
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -217,14 +337,29 @@ export function SessionClocks() {
 
   const openCount = rows.filter((r) => r.open).length;
 
+  // The next desk to open, by name. "2 OPEN" says how many but not what is
+  // coming, which is the thing you plan around.
+  const upcoming = rows
+    .filter((r) => !r.open)
+    .sort((a, b) => a.mins - b.mins)[0];
+
   return (
     <View style={styles.wrap}>
       <View style={styles.head}>
         <Text style={styles.label}>MARKET SESSIONS</Text>
-        <Text style={[styles.count, openCount > 0 && { color: theme.accent }]}>
-          {openCount === 0 ? 'ALL CLOSED' : `${openCount} OPEN`}
-        </Text>
+        <View style={styles.headRight}>
+          <Text style={[styles.count, openCount > 0 && { color: theme.accent }]}>
+            {openCount === 0 ? 'ALL CLOSED' : `${openCount} OPEN`}
+          </Text>
+          {!!upcoming && (
+            <Text style={styles.next} numberOfLines={1}>
+              NEXT · {upcoming.session.city} IN {formatFlip(upcoming.mins)}
+            </Text>
+          )}
+        </View>
       </View>
+
+      <CurrentSessionFlag openRows={rows.filter((r) => r.open)} accent={theme.accent} />
 
       <View style={styles.row}>
         {rows.map((r, i) => (
@@ -252,6 +387,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: { fontSize: 9, fontWeight: '800', letterSpacing: 1.9, color: '#808080' },
+  headRight: { alignItems: 'flex-end' },
+  next: { fontSize: 8, fontWeight: '700', letterSpacing: 1, color: '#6d7a72', marginTop: 3 },
   count: { fontSize: 9, fontWeight: '800', letterSpacing: 1.4, color: '#808080' },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   coin: { alignItems: 'center', flex: 1 },
@@ -284,6 +421,27 @@ const styles = StyleSheet.create({
     color: '#555555',
     fontVariant: ['tabular-nums'],
   },
+});
+
+const heroStyles = StyleSheet.create({
+  wrap: { alignItems: 'center', marginBottom: 18 },
+  cloth: {
+    width: 108,
+    height: 72,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+  },
+  sheen: {
+    position: 'absolute',
+    top: -30,
+    bottom: -30,
+    width: 26,
+    backgroundColor: 'rgba(255,255,255,0.30)',
+  },
+  city: { marginTop: 10, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
+  sub: { marginTop: 3, fontSize: 9.5, fontWeight: '600', color: '#7a8880', letterSpacing: 0.4 },
 });
 
 export default SessionClocks;

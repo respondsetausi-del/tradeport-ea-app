@@ -95,15 +95,43 @@ export async function GET(request: Request): Promise<Response> {
     });
 
     // 5 — the one that prevents the hedge.
+    //
+    // Scoped to the SYMBOL, not the account. An account may now run several
+    // symbols at once, and it is two engines on EURUSD that open Buy and Sell
+    // together — a robot on XAUUSD cannot hedge one on EURUSD. Asking the
+    // account-wide question here would block symbols 2..n of the user's own
+    // selection, since symbol 1 is by then already running.
     const strat: any = getStrategyStatus(id);
     const batch: any = getBatchStatus(id);
-    const busy = Boolean(strat?.running) || Boolean(batch?.running);
+
+    // The two engines report differently: the multi-symbol ones carry a
+    // `symbols` list, the single-symbol batch engine carries one `symbol`.
+    // Read both shapes, or a live run in the older shape becomes invisible to
+    // the very check that exists to catch it.
+    const symbolsOf = (st: any): string[] => {
+      if (!st?.running) return [];
+      if (Array.isArray(st.symbols)) {
+        return st.symbols.map((x: any) => String(x?.symbol ?? x)).filter(Boolean);
+      }
+      return st.symbol ? [String(st.symbol)] : [];
+    };
+    const running = [...symbolsOf(strat), ...symbolsOf(batch)];
+
+    // An engine that says it is running but will not name a symbol is treated
+    // as busy on everything. This check is the last thing standing between the
+    // user and two engines on one symbol, so it fails closed.
+    const opaque = [strat, batch].some((st: any) => st?.running && symbolsOf(st).length === 0);
+    // With no symbol given there is nothing to scope to, so fall back to the
+    // stricter account-wide question rather than passing by default.
+    const busy = opaque || (symbol
+      ? running.some((s) => s.toUpperCase() === symbol.toUpperCase())
+      : running.length > 0);
     add({
       id: 'no_other_engine',
-      label: 'Nothing else is trading this account',
+      label: symbol ? `Nothing else is trading ${symbol}` : 'Nothing else is trading this account',
       ok: !busy,
       detail: busy
-        ? `Already running on ${strat?.symbol || batch?.symbol || 'this account'}. Stop it first.`
+        ? `Already running on ${running.join(', ') || symbol || 'this account'}. Stop it first.`
         : undefined,
       blocking: true,
     });
