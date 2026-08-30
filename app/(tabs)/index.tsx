@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ImageBackground, Platform, Dimensions, SafeAreaView, Animated, RefreshControl, Modal } from 'react-native';
-import { Play, Square, CalendarDays, Trash2, Plus, Menu, BarChart3, Shield } from 'lucide-react-native';
+import { Play, Square, CalendarDays, TrendingUp, Plus, Menu, BarChart3, Shield } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { RobotLogo } from '@/components/robot-logo';
 import { PageBackground } from '@/components/page-background';
@@ -401,15 +401,15 @@ export default function HomeScreen() {
               <View style={{ flex: 1, gap: 12, maxWidth: 220 }}>
                 <TouchableOpacity onPress={handleFundamentals} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
                   <CalendarDays color={cc} size={14} />
-                  <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '700', color: cc }}>Fundamentals</Text>
+                  <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '700', color: cc }}>News</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleToggleBot} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
                   {isBotActive ? <Square color={cc} size={14} fill={cc} /> : <Play color={cc} size={14} fill={cc} />}
                   <Text style={{ fontSize: 12, fontWeight: '700', color: cc }}>{isBotActive ? 'Stop' : 'Start'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleRemoveActiveBot} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
-                  <Trash2 color={cc} size={14} />
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: cc }}>Remove</Text>
+                <TouchableOpacity onPress={tryScannerOpen} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
+                  <TrendingUp color={cc} size={14} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: cc }}>Scan</Text>
                 </TouchableOpacity>
               </View>
 
@@ -476,7 +476,15 @@ export default function HomeScreen() {
                 <Text style={styles.cmdDesc}>{primaryEA.description || 'Your Trading EA Is Ready.'}</Text>
               </View>
             ) : (
-            <View style={[styles.heroWrap, !isNeon && { padding: 0, borderRadius: 28 }]}>
+            // Removing an EA is destructive, so it is a deliberate hold on the
+            // robot itself rather than a button in the main row. The existing
+            // warning modal still confirms it.
+            <TouchableOpacity
+              activeOpacity={1}
+              onLongPress={handleRemoveActiveBot}
+              delayLongPress={600}
+              style={[styles.heroWrap, !isNeon && { padding: 0, borderRadius: 28 }]}
+            >
               {isNeon && <Animated.View style={[styles.heroNeonSpinner, { transform: [{ rotate: cardSpinDeg }] }, Platform.OS === 'web' && { backgroundImage: 'conic-gradient(from 0deg, transparent 0deg, ' + ac + ' 40deg, rgba(' + a + ', 0.5) 80deg, transparent 120deg, transparent 180deg, ' + ac + ' 220deg, rgba(' + a + ', 0.5) 260deg, transparent 300deg, transparent 360deg)' }]} />}
               {isNeon && <Animated.View style={[styles.heroNeonGlow, { transform: [{ rotate: cardSpinDeg }] }, Platform.OS === 'web' && { backgroundImage: 'conic-gradient(from 0deg, transparent 0deg, rgba(' + a + ', 0.4) 40deg, transparent 120deg, transparent 180deg, rgba(' + a + ', 0.4) 220deg, transparent 300deg, transparent 360deg)' }]} />}
               {primaryEAImage && !logoError ? (
@@ -504,7 +512,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
             )}
 
           </View>
@@ -539,9 +547,7 @@ export default function HomeScreen() {
                     <View style={styles.buttonIconContainer}>
                       <CalendarDays color={cc} size={18} />
                     </View>
-                    {/* Longer word than its neighbours, so it gets its own size
-                        to stay on one line at phone width. */}
-                    <Text numberOfLines={1} style={[styles.secondaryButtonText, styles.longActionText, isCmd && { color: cmdRed }]}>FUNDAMENTALS</Text>
+                    <Text numberOfLines={1} style={[styles.secondaryButtonText, isCmd && { color: cmdRed }]}>NEWS</Text>
                   </TouchableOpacity>
                   <TouchableOpacity testID="action-start" style={[styles.actionButton, styles.tradeButton, isBotActive && styles.tradeButtonActive]} onPress={handleToggleBot}>
                     <View style={[styles.tradeIconOuter, isPill && { width: 72, height: 72, borderRadius: 36 }]}>
@@ -553,11 +559,11 @@ export default function HomeScreen() {
                     </View>
                     <Text style={[styles.tradeButtonText, isBotActive && styles.tradeButtonTextActive, isCmd && { color: cmdRed }]}>{isBotActive ? 'STOP' : 'TRADE'}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity testID="action-remove" style={[styles.actionButton, styles.removeButton]} onPress={handleRemoveActiveBot}>
+                  <TouchableOpacity testID="action-scan" style={[styles.actionButton, styles.secondaryButton]} onPress={tryScannerOpen}>
                     <View style={styles.buttonIconContainer}>
-                      <Trash2 color={isCmd ? cmdRed : ac} size={18} />
+                      <TrendingUp color={cc} size={18} />
                     </View>
-                    <Text style={[styles.removeButtonText, isCmd && { color: cmdRed }]}>REMOVE</Text>
+                    <Text style={[styles.secondaryButtonText, isCmd && { color: cmdRed }]}>SCAN</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1222,10 +1228,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     textAlign: 'center',
-  },
-  longActionText: {
-    fontSize: 10,
-    letterSpacing: 0.2,
   },
   removeButtonText: {
     color: 'rgba(255, 255, 255, 0.6)',

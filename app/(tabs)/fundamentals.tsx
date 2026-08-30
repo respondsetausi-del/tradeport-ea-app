@@ -10,7 +10,8 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
-import { CalendarDays, RefreshCw, AlertTriangle, Menu } from 'lucide-react-native';
+import { CalendarDays, RefreshCw, AlertTriangle, Menu, ArrowLeft } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useTheme } from '@/providers/theme-provider';
 import { useSidebar } from '@/providers/sidebar-provider';
 import { useApp } from '@/providers/app-provider';
@@ -142,9 +143,26 @@ export default function FundamentalsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={openSidebar} style={styles.menuBtn} activeOpacity={0.7}>
-          <Menu size={20} color="#FFFFFF" />
-        </TouchableOpacity>
+        {/* Back leads, menu follows. Unlike EA Converter this corner was
+            already taken, so the two sit side by side rather than the back
+            control displacing the menu.
+
+            Goes to Home rather than router.back(): this screen is reached
+            from the home row and from the drawer, so "back" is ambiguous
+            but "home" is not. */}
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => router.replace('/(tabs)')}
+            style={styles.iconBtn}
+            activeOpacity={0.7}
+            testID="fundamentals-back"
+          >
+            <ArrowLeft size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={openSidebar} style={styles.iconBtn} activeOpacity={0.7}>
+            <Menu size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.titleRow}>
           <CalendarDays size={16} color={ac} strokeWidth={2.3} />
           <Text style={[styles.title, { color: ac }]}>FUNDAMENTALS</Text>
@@ -302,14 +320,13 @@ export default function FundamentalsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050505' },
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14 },
-  menuBtn: {
-    alignSelf: 'flex-start',
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  iconBtn: {
     padding: 8,
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 12,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   title: { fontSize: 20, fontWeight: '800', letterSpacing: 2 },
