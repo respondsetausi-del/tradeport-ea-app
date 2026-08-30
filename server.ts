@@ -1332,11 +1332,55 @@ async function handleMT4Proxy(request: Request): Promise<Response> {
   }
 }
 
+/**
+ * Development-only CORS for the API.
+ *
+ * In production the SPA and the API share an origin, so none of this applies.
+ * In development Metro serves on one port and this server on another, and the
+ * browser blocks every API call as cross-origin. Only loopback origins are
+ * echoed back, so a deployed origin can never satisfy this test.
+ */
+function devCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin');
+  if (!origin) return {};
+  let host: string;
+  try { host = new URL(origin).hostname; } catch { return {}; }
+  if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]') return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept, Authorization',
+  };
+}
+
+/** Wraps an API response with the dev CORS headers, preserving what it set. */
+function withDevCors(res: Response, request: Request): Response {
+  const extra = devCorsHeaders(request);
+  if (Object.keys(extra).length === 0) return res;
+  const h = new Headers(res.headers);
+  for (const [k, v] of Object.entries(extra)) h.set(k, v);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+}
+
 async function handleApi(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
 
   try {
+    if (pathname === '/api/news/schedule') {
+      const route = await import('./app/api/news/schedule/route.ts');
+      const fn = (route as any)[request.method];
+      if (typeof fn === 'function') return fn(request) as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    if (pathname === '/api/fundamentals') {
+      const route = await import('./app/api/fundamentals/route.ts');
+      if (typeof route.GET === 'function') return route.GET() as Promise<Response>;
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
     if (pathname === '/api/check-email') {
       const route = await import('./app/api/check-email/route.ts');
       if (request.method === 'POST' && typeof route.POST === 'function') {
@@ -1466,32 +1510,14 @@ async function handleApi(request: Request): Promise<Response> {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
-    // Add terminal-proxy routing
+    // terminal-proxy was migrated to Expo Router's +api.ts convention (Web
+    // Request/Response), but server.ts still imported the deleted Express-style
+    // module, so this route threw on every call. Points at the new handler,
+    // which needs no request/response shimming.
     if (pathname === '/api/terminal-proxy') {
-      const route = await import('./app/api/terminal-proxy.ts');
-      if (request.method === 'GET' && typeof route.default === 'function') {
-        // Convert Bun Request to Express-like request/response
-        const expressReq = {
-          method: request.method,
-          query: Object.fromEntries(new URL(request.url).searchParams),
-          url: request.url
-        } as any;
-
-        const expressRes = {
-          status: (code: number) => ({
-            json: (data: any) => new Response(JSON.stringify(data), {
-              status: code,
-              headers: { 'Content-Type': 'application/json' }
-            }),
-            send: (data: string) => new Response(data, {
-              status: code,
-              headers: { 'Content-Type': 'text/html; charset=utf-8' }
-            })
-          }),
-          setHeader: (name: string, value: string) => { }
-        } as any;
-
-        return route.default(expressReq, expressRes);
+      const route = await import('./app/api/terminal-proxy+api.ts');
+      if (request.method === 'GET' && typeof route.GET === 'function') {
+        return route.GET(request) as Promise<Response>;
       }
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -1690,7 +1716,12 @@ const server = Bun.serve({
 
     // API routes
     if (url.pathname.startsWith('/api/')) {
-      return handleApi(request);
+      // Preflight has to be answered before dispatch: the route handlers do
+      // not implement OPTIONS, and a failed preflight blocks the real call.
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: devCorsHeaders(request) });
+      }
+      return handleApi(request).then((res) => withDevCors(res, request));
     }
 
     // Static files
@@ -1706,6 +1737,13 @@ import('./app/api/mt5/batch/engine.ts')
   .then((m) => m.resumeBatches?.())
   .then(() => console.log('[Batch:srv] resume-on-boot complete'))
   .catch((e) => console.error('[Batch:srv] resume-on-boot failed:', e?.message || e));
+
+// Same for armed news schedules. Releases that already passed while the server
+// was down are dropped rather than entered late — see engine.resumeNews.
+import('./app/api/news/engine.ts')
+  .then((m) => m.resumeNews?.())
+  .then(() => console.log('[News:srv] resume-on-boot complete'))
+  .catch((e) => console.error('[News:srv] resume-on-boot failed:', e?.message || e));
 
 // Same for strategy runs. These revive their own broker session on the way up,
 // so a redeploy at 3am with every phone asleep still comes back trading.

@@ -18,6 +18,7 @@ export default function TabLayout() {
         <Tabs.Screen name="index" />
         <Tabs.Screen name="metatrader" />
         <Tabs.Screen name="settings" />
+        <Tabs.Screen name="fundamentals" options={{ tabBarButton: () => null }} />
         <Tabs.Screen name="quotes" options={{ tabBarButton: () => null }} />
         <Tabs.Screen name="scanner" options={{ tabBarButton: () => null }} />
       </Tabs>
