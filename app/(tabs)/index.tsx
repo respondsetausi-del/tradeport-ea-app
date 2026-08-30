@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ImageBackground, Platform, Dimensions, SafeAreaView, Animated, RefreshControl, Modal } from 'react-native';
-import { Play, Square, TrendingUp, Trash2, Plus, Menu, BarChart3, Shield } from 'lucide-react-native';
+import { Play, Square, CalendarDays, Trash2, Plus, Menu, BarChart3, Shield } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { RobotLogo } from '@/components/robot-logo';
 import { PageBackground } from '@/components/page-background';
@@ -26,11 +26,12 @@ export default function HomeScreen() {
   // server-side strategy engine. STOP → close + halt.
   const handleQuickStartConfirm = useCallback(async (cfg: QuickConfig) => {
     setQuickStartOpen(false);
-    const symbol = cfg.symbol.trim();
+    // Exact broker casing is preserved — ".US30." must stay ".US30.".
+    const symbols = (cfg.symbols || []).map((x) => x.trim()).filter(Boolean);
     const lot = parseFloat(String(cfg.lotSize).replace(',', '.')) || 0.01;
     const count = Math.max(1, Math.min(100, parseInt(cfg.numberOfTrades, 10) || 1));
     let uuid = mt5Account?.uuid;
-    if (!symbol || !uuid) return;
+    if (symbols.length === 0 || !uuid) return;
     // Deactivate every symbol so the WebView terminal places NOTHING.
     //
     // This used to also call activateMT5Symbol({..., direction: 'BOTH'}), which
@@ -48,11 +49,20 @@ export default function HomeScreen() {
     if (fresh) uuid = fresh;
     // Pre-flight: refuse to start on a problem the user can still fix, and say
     // which one. Starting blind is how you end up debugging a silent no-trade.
+    //
+    // Every symbol is checked, and ALL of them must pass. Starting the ones that
+    // happen to be fine would leave the trader believing their whole selection
+    // is running when part of it silently never began.
     try {
-      const pre = await apiService.preflight(uuid, symbol, lot);
-      if (!pre?.ok) {
+      const pres = await Promise.all(symbols.map((sym) => apiService.preflight(uuid!, sym, lot)));
+      const problems: string[] = [];
+      pres.forEach((pre: any, i) => {
+        if (pre?.ok) return;
         const failed = (pre?.checks || []).filter((c: any) => c.blocking && !c.ok);
-        setScannerGateMsg(failed.map((c: any) => c.detail || c.label).join(' — ') || 'Cannot start right now.');
+        problems.push(`${symbols[i]}: ${failed.map((c: any) => c.detail || c.label).join(' — ') || 'cannot start'}`);
+      });
+      if (problems.length) {
+        setScannerGateMsg(problems.join('\n'));
         setBotActive(false);
         return;
       }
@@ -64,7 +74,7 @@ export default function HomeScreen() {
     setSessionSummary(null);
     try {
       await apiService.startStrategy(uuid, {
-        symbol, volume: lot, count,
+        symbols, volume: lot, count,
         comment: (eas?.[0]?.name || 'Robot'),
         server: mt5Account?.server,
         login: mt5Account?.login,
@@ -109,7 +119,8 @@ export default function HomeScreen() {
           // `flat: false` means the server could NOT confirm the account is
           // empty. Telling the user "all closed" there is a lie they act on.
           if (res?.flat === false) {
-            setScannerGateMsg('Stopped, but some trades may still be open. Check MetaTrader.');
+            const where = Array.isArray(res.notFlat) && res.notFlat.length ? ` (${res.notFlat.join(', ')})` : '';
+            setScannerGateMsg(`Stopped, but some trades may still be open${where}. Check MetaTrader.`);
           }
         } catch (e: any) { console.error('[stop] stopStrategy error:', e?.message || e); }
       }
@@ -273,8 +284,10 @@ export default function HomeScreen() {
     setIsRefreshing(false);
   };
 
-  const handleQuotes = () => {
-    router.push('/(tabs)/quotes');
+  // Quotes is still reachable from the dynamic island and by voice; the home
+  // slot goes to the calendar, which is the thing you act on before a release.
+  const handleFundamentals = () => {
+    router.push('/fundamentals');
   };
 
   /* ============================================================
@@ -386,9 +399,9 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 20 }}>
               {/* Left buttons */}
               <View style={{ flex: 1, gap: 12, maxWidth: 220 }}>
-                <TouchableOpacity onPress={handleQuotes} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
-                  <TrendingUp color={cc} size={14} />
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: cc }}>Quotes</Text>
+                <TouchableOpacity onPress={handleFundamentals} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
+                  <CalendarDays color={cc} size={14} />
+                  <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '700', color: cc }}>Fundamentals</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleToggleBot} activeOpacity={0.6} style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 2, borderColor: 'rgba(' + ca + ',0.5)' }, Platform.OS === 'web' && { backdropFilter: 'blur(20px)', boxShadow: '0 0 4px rgba(' + ca + ',0.7), 0 0 10px rgba(' + ca + ',0.4), 0 0 25px rgba(' + ca + ',0.2)', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' } as any]}>
                   {isBotActive ? <Square color={cc} size={14} fill={cc} /> : <Play color={cc} size={14} fill={cc} />}
@@ -522,11 +535,13 @@ export default function HomeScreen() {
                 {isNeon && <View style={[styles.refraction, Platform.OS === 'web' && { background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 40%, transparent 100%)' }]} />}
                 {isNeon && <View style={[styles.meniscus, Platform.OS === 'web' && { background: 'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(255,255,255,0.12) 0%, transparent 100%)' }]} />}
                 <View style={styles.bottomActions}>
-                  <TouchableOpacity testID="action-quotes" style={[styles.actionButton, styles.secondaryButton]} onPress={handleQuotes}>
+                  <TouchableOpacity testID="action-fundamentals" style={[styles.actionButton, styles.secondaryButton]} onPress={handleFundamentals}>
                     <View style={styles.buttonIconContainer}>
-                      <TrendingUp color={cc} size={18} />
+                      <CalendarDays color={cc} size={18} />
                     </View>
-                    <Text style={[styles.secondaryButtonText, isCmd && { color: cmdRed }]}>QUOTES</Text>
+                    {/* Longer word than its neighbours, so it gets its own size
+                        to stay on one line at phone width. */}
+                    <Text numberOfLines={1} style={[styles.secondaryButtonText, styles.longActionText, isCmd && { color: cmdRed }]}>FUNDAMENTALS</Text>
                   </TouchableOpacity>
                   <TouchableOpacity testID="action-start" style={[styles.actionButton, styles.tradeButton, isBotActive && styles.tradeButtonActive]} onPress={handleToggleBot}>
                     <View style={[styles.tradeIconOuter, isPill && { width: 72, height: 72, borderRadius: 36 }]}>
@@ -1207,6 +1222,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     textAlign: 'center',
+  },
+  longActionText: {
+    fontSize: 10,
+    letterSpacing: 0.2,
   },
   removeButtonText: {
     color: 'rgba(255, 255, 255, 0.6)',

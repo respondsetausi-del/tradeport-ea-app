@@ -314,7 +314,7 @@ class ApiService {
    */
   async startStrategy(
     uuid: string,
-    opts: { symbol: string; volume: number; count: number; comment?: string; server?: string; login?: string; password?: string },
+    opts: { symbols: string[]; volume: number; count: number; comment?: string; server?: string; login?: string; password?: string },
   ): Promise<any> {
     const res = await fetch(`${BASE_URL}/api/mt5/strategy/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: uuid, ...opts }) });
     const data = await res.json();

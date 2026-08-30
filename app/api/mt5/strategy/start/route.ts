@@ -1,4 +1,4 @@
-import { startStrategy } from '@/app/api/mt5/strategy/engine';
+import { startStrategies, MAX_SYMBOLS_PER_ACCOUNT } from '@/app/api/mt5/strategy/engine';
 
 const num = (v: any): number | undefined => {
   const n = Number(v);
@@ -9,15 +9,21 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const body = await request.json().catch(() => ({} as any));
     const id = body?.id as string;
-    const symbol = body?.symbol as string;
+    // `symbols` is the multi-select path; `symbol` is still accepted so an
+    // older client build keeps working against a newer server.
+    const raw: unknown = Array.isArray(body?.symbols) ? body.symbols : (body?.symbol ? [body.symbol] : []);
+    const symbols = (raw as unknown[])
+      .map((s) => String(s ?? '').trim())
+      .filter(Boolean)
+      .slice(0, MAX_SYMBOLS_PER_ACCOUNT);
     const volume = Number(body?.volume);
-    if (!id || !symbol || !volume) {
-      return Response.json({ error: 'id, symbol and volume are required' }, { status: 400 });
+    if (!id || symbols.length === 0 || !volume) {
+      return Response.json({ error: 'id, at least one symbol and volume are required' }, { status: 400 });
     }
 
-    const result = startStrategy({
+    const result = startStrategies({
       id,
-      symbol,
+      symbols,
       volume,
       count: num(body?.count),
       comment: body?.comment,
@@ -50,7 +56,10 @@ export async function POST(request: Request): Promise<Response> {
         ? { server: String(body.server), login: String(body.login), password: String(body.password) }
         : undefined,
     });
-    if (!result.ok) return Response.json(result, { status: 400 });
+    // Nothing started at all is a failure the caller must see, not a silent ok.
+    if (!result.ok) {
+      return Response.json({ error: result.rejected[0]?.error || 'Failed to start', ...result }, { status: 400 });
+    }
     return Response.json(result);
   } catch (error: any) {
     console.error('MT5 strategy/start error:', error);

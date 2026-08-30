@@ -77,7 +77,40 @@ interface Run {
   haltReason: string | null;
 }
 
-const runs = new Map<string, Run>();
+/**
+ * account id → symbol → run.
+ *
+ * An account can trade several symbols at once, each its own run with its own
+ * indicator state, held direction and timer. Two levels rather than a flat
+ * `id::symbol` key so an account's runs can be enumerated cheaply — persist,
+ * stop-all and the status endpoints all need exactly that.
+ */
+const runs = new Map<string, Map<string, Run>>();
+
+/** Hard ceiling per account, matching the batch engine. */
+export const MAX_SYMBOLS_PER_ACCOUNT = 20;
+
+function legsOf(id: string): Map<string, Run> {
+  let m = runs.get(id);
+  if (!m) { m = new Map(); runs.set(id, m); }
+  return m;
+}
+
+function runOf(id: string, symbol: string): Run | undefined {
+  return runs.get(id)?.get(symbol);
+}
+
+function liveRuns(id: string): Run[] {
+  return [...(runs.get(id)?.values() ?? [])].filter((r) => r.active);
+}
+
+/** Remove a run, but only if it is still the one we think it is. */
+function dropRun(id: string, symbol: string, r?: Run): void {
+  const legs = runs.get(id);
+  if (!legs) return;
+  if (!r || legs.get(symbol) === r) legs.delete(symbol);
+  if (legs.size === 0) runs.delete(id);
+}
 
 // Persistence is PRODUCTION-GATED for the same reason the batch engine's is: a
 // local dev server sharing this MySQL would otherwise reload live runs on boot
@@ -100,30 +133,41 @@ async function ensureTable(): Promise<void> {
   tableReady = true;
 }
 
-function persist(id: string, r: Run): void {
+function persist(id: string): void {
   if (!PERSIST) return;
   (async () => {
     try {
+      const live = liveRuns(id);
       await ensureTable();
       const pool = await getPool();
-      // Credentials are stored so the run can revive its own broker session
-      // while every device is asleep, and are encrypted at rest. With no
-      // CREDS_KEY set we store NOTHING rather than fall back to plaintext —
-      // the run then cannot self-revive, which is the safer failure.
-      const encCreds = r.creds ? encrypt(JSON.stringify(r.creds)) : null;
-      if (r.creds && !encCreds) {
-        console.error('[Strat:srv] CREDS_KEY not set — credentials NOT persisted; this run cannot revive its own session');
+      if (live.length === 0) {
+        await pool.query('DELETE FROM tp_mt5_strategies WHERE uuid = ?', [id]);
+        return;
       }
-      const data = JSON.stringify({
-        symbol: r.symbol, volume: r.volume, count: r.count, comment: r.comment,
-        cfg: r.cfg, timeframeMin: r.timeframeMin, htfMin: r.htfMin,
-        evalMs: r.evalMs, alwaysIn: r.alwaysIn, maxWaitMs: r.maxWaitMs,
-        flatWhenNoSignal: r.flatWhenNoSignal, reenterEachBar: r.reenterEachBar,
-        trades: r.trades, startedAt: r.startedAt, creds: encCreds, risk: r.risk,
+      // Credentials are stored so a run can revive its own broker session while
+      // every device is asleep, and are encrypted at rest. With no CREDS_KEY set
+      // we store NOTHING rather than fall back to plaintext — the run then
+      // cannot self-revive, which is the safer failure.
+      let warned = false;
+      const rows = live.map((r) => {
+        const encCreds = r.creds ? encrypt(JSON.stringify(r.creds)) : null;
+        if (r.creds && !encCreds && !warned) {
+          warned = true;
+          console.error('[Strat:srv] CREDS_KEY not set — credentials NOT persisted; these runs cannot revive their own session');
+        }
+        return {
+          symbol: r.symbol, volume: r.volume, count: r.count, comment: r.comment,
+          cfg: r.cfg, timeframeMin: r.timeframeMin, htfMin: r.htfMin,
+          evalMs: r.evalMs, alwaysIn: r.alwaysIn, maxWaitMs: r.maxWaitMs,
+          flatWhenNoSignal: r.flatWhenNoSignal, reenterEachBar: r.reenterEachBar,
+          trades: r.trades, startedAt: r.startedAt, creds: encCreds, risk: r.risk,
+        };
       });
+      // The row stays keyed by uuid and the symbol list lives inside the JSON
+      // blob, so this needs no migration on tp_mt5_strategies.
       await pool.query(
         'INSERT INTO tp_mt5_strategies (uuid, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
-        [id, data],
+        [id, JSON.stringify({ v: 2, runs: rows })],
       );
     } catch (e: any) { console.error('[Strat:srv] persist error:', e?.message || e); }
   })();
@@ -211,7 +255,26 @@ async function closeUntilFlat(id: string, r: Run): Promise<FlatCheck> {
   return unreadable ? 'UNKNOWN' : 'STILL_OPEN';
 }
 
-async function openDirection(id: string, r: Run, dir: Direction): Promise<void> {
+/**
+ * Open `count` orders in `dir`, each carrying its own stop and target.
+ *
+ * The levels ride on the OrderSend itself rather than being added afterwards.
+ * A separate modify leaves a window where the position is live and naked, and
+ * it only protects the paths that remember to call it — the grace-window entry
+ * did not. Sent this way, an order cannot exist unprotected.
+ *
+ * They are derived from the last close, since the fill price does not exist
+ * yet. applyProtection() refines them from the real average fill afterwards.
+ */
+async function openDirection(id: string, r: Run, dir: Direction, atrValue = 0, refPrice = 0): Promise<void> {
+  const canProtect = atrValue > 0 && refPrice > 0 && r.risk.slAtrMult > 0;
+  const slAtSend = canProtect ? stopPrice(refPrice, atrValue, dir, r.risk.slAtrMult, r.decimals) : null;
+  const tpAtSend = canProtect ? targetPrice(refPrice, atrValue, dir, r.risk.tpAtrMult, r.decimals) : null;
+  if (!canProtect) {
+    note(r, `WARNING: opening ${dir} with no stop — no ATR or price to size one from`);
+    console.error(`[Strat:srv] ${id} opening ${r.symbol} UNPROTECTED — atr=${atrValue} price=${refPrice}`);
+  }
+
   // Write intent BEFORE sending. If the response never arrives, this row is the
   // only record that an order might exist at the broker.
   const orders = Array.from({ length: r.count }, (_, i) => {
@@ -227,7 +290,11 @@ async function openDirection(id: string, r: Run, dir: Direction): Promise<void> 
 
   const results: any[] = await Promise.all(
     orders.map((o) =>
-      orderSend({ id, symbol: r.symbol, operation: dir, volume: r.volume, comment: o.tag })
+      orderSend({
+          id, symbol: r.symbol, operation: dir, volume: r.volume, comment: o.tag,
+          ...(slAtSend !== null ? { stoploss: slAtSend } : {}),
+          ...(tpAtSend !== null ? { takeprofit: tpAtSend } : {}),
+        })
         .then(async (res: any) => {
           const ticket = Number(res?.ticket);
           if (ticket > 0) await settle(o.key, 'filled', ticket, Number(res?.openPrice) || null);
@@ -267,7 +334,10 @@ async function openDirection(id: string, r: Run, dir: Direction): Promise<void> 
     .map((o: any) => Number(o?.openPrice))
     .filter((p: number) => Number.isFinite(p) && p > 0);
   r.entryPrice = fills.length ? fills.reduce((a, b) => a + b, 0) / fills.length : null;
-  r.currentStop = null;
+  // The stop is already at the broker from the send; applyProtection() moves it
+  // to the real fill. Recording it now means a failed refine leaves the run
+  // knowing it is protected rather than believing it is naked.
+  r.currentStop = slAtSend;
 
   r.held = r.tickets.length ? dir : null;
   r.trades += 1;
@@ -359,6 +429,15 @@ async function breachedLimits(id: string, r: Run): Promise<string | null> {
   return null;
 }
 
+/**
+ * A breached cap is an ACCOUNT fact — breachedLimits reads account-wide closed
+ * orders — so it stops every symbol, not just the one that noticed. Halting one
+ * and letting the rest trade on would walk the account straight past the limit.
+ */
+async function haltAll(id: string, reason: string): Promise<void> {
+  await Promise.all(liveRuns(id).map((run) => halt(id, run, reason).catch(() => {})));
+}
+
 /** Flatten and stop trading until a human restarts it. */
 async function halt(id: string, r: Run, reason: string): Promise<void> {
   const state = await closeUntilFlat(id, r);
@@ -372,7 +451,7 @@ async function halt(id: string, r: Run, reason: string): Promise<void> {
     ? 'Stopped for today to protect your account.'
     : 'Stopped to protect your account — check MetaTrader for open trades.';
   console.error(`[Strat:srv] ${id} HALTED — ${reason}`);
-  persist(id, r);
+  persist(id);
 }
 
 /** Closed candles only — the newest bar is still forming and would flicker. */
@@ -424,8 +503,8 @@ async function reconcile(id: string, r: Run): Promise<boolean> {
   return true;
 }
 
-async function evaluate(id: string): Promise<void> {
-  const r = runs.get(id);
+async function evaluate(id: string, symbol: string): Promise<void> {
+  const r = runOf(id, symbol);
   if (!r || !r.active) return;
 
   try {
@@ -487,7 +566,7 @@ async function evaluate(id: string): Promise<void> {
     // ── Account breakers, checked BEFORE any decision to open ──────────────
     const breach = await breachedLimits(id, r);
     if (!r.active) return;
-    if (breach) { await halt(id, r, breach); return; }
+    if (breach) { await haltAll(id, breach); return; }
 
     // ── Weekend / rollover: be flat, stay flat ────────────────────────────
     if (bar && isWeekendFlat(bar, r.risk.fridayFlatHourUtc)) {
@@ -539,11 +618,11 @@ async function evaluate(id: string): Promise<void> {
         console.error(`[Strat:srv] ${id} ${target} WITHHELD — flat unproven (${state})`);
         return;
       }
-      await openDirection(id, r, target);
+      await openDirection(id, r, target, atrValue, price);
       await applyProtection(id, r, target, atrValue);
       r.flatSince = Date.now();
       note(r, `${bar}  ${target} x${r.tickets.length} — indicator direction`);
-      persist(id, r);
+      persist(id);
       r.status = `${target} x${r.tickets.length} — indicator direction`;
       r.publicStatus = `Trade running — ${target} x${r.tickets.length}`;
       return;
@@ -559,7 +638,7 @@ async function evaluate(id: string): Promise<void> {
       }
       const state = await closeUntilFlat(id, r);
       note(r, `${bar}  EXIT — ${sig.reason} → ${state === 'FLAT' ? 'flat' : `CLOSE FAILED (${state})`}`);
-      persist(id, r);
+      persist(id);
       r.status = state === 'FLAT' ? `flat — ${sig.reason}` : `could not flatten (${state}) — retrying`;
       return;
     }
@@ -582,7 +661,10 @@ async function evaluate(id: string): Promise<void> {
           r.publicStatus = 'Preparing your account…';
           return;
         }
-        await openDirection(id, r, sig.raw);
+        await openDirection(id, r, sig.raw, atrValue, price);
+        // This path used to open and walk away, never refining its levels to
+        // the real fill. It now protects like every other entry.
+        await applyProtection(id, r, sig.raw, atrValue);
         r.flatSince = Date.now();
         note(r, `${bar}  ENTER ${sig.raw} x${r.tickets.length} — grace window (${Math.round(waitedMs / 60000)}m elapsed, gates not met: ${sig.reason})`);
         r.status = `${sig.raw} x${r.tickets.length} — grace-window entry after ${Math.round(waitedMs / 60000)}m`;
@@ -619,7 +701,7 @@ async function evaluate(id: string): Promise<void> {
       return;
     }
 
-    await openDirection(id, r, sig.dir);
+    await openDirection(id, r, sig.dir, atrValue, price);
     await applyProtection(id, r, sig.dir, atrValue);
     note(r, `${bar}  ${sig.dir} x${r.tickets.length} — ${sig.reason}`);
     r.status = `${sig.dir} x${r.tickets.length} — ${sig.reason}`;
@@ -627,8 +709,9 @@ async function evaluate(id: string): Promise<void> {
     console.error(`[Strat:srv] ${id} evaluate error:`, e?.message || e);
     r.status = `evaluate error: ${e?.message || e}`;
   } finally {
-    const rr = runs.get(id);
-    if (rr && rr.active) rr.timer = setTimeout(() => evaluate(id), rr.evalMs);
+    // Re-read: the run may have been stopped or replaced while we were working.
+    const rr = runOf(id, symbol);
+    if (rr && rr.active) rr.timer = setTimeout(() => evaluate(id, symbol), rr.evalMs);
   }
 }
 
@@ -664,9 +747,17 @@ export interface StartParams {
   creds?: SessionCreds;
 }
 
+/**
+ * Start (or restart) one symbol. Symbols already running on the same account
+ * keep going untouched — restarting EURUSD must not close XAUUSD.
+ */
 export function startStrategy(p: StartParams) {
-  const { id } = p;
-  stopStrategy(id, true).catch(() => {});
+  const { id, symbol } = p;
+  const legs = legsOf(id);
+  if (legs.has(symbol)) stopSymbolStrategy(id, symbol, true).catch(() => {});
+  else if (liveRuns(id).length >= MAX_SYMBOLS_PER_ACCOUNT) {
+    return { ok: false, error: `At most ${MAX_SYMBOLS_PER_ACCOUNT} symbols can run at once` };
+  }
 
   const r: Run = {
     symbol: p.symbol,
@@ -711,7 +802,10 @@ export function startStrategy(p: StartParams) {
     // someone explicitly sets slAtrMult to 0.
     risk: {
       slAtrMult: p.slAtrMult ?? 1.5,
-      tpAtrMult: p.tpAtrMult ?? 0,
+      // A target at twice the stop distance. The trail still runs, so
+      // whichever comes first wins — this caps the tail, it does not
+      // replace trailing.
+      tpAtrMult: p.tpAtrMult ?? 3.0,
       trailStartAtr: p.trailStartAtr ?? 1.0,
       trailAtr: p.trailAtr ?? 1.0,
       maxDailyLoss: Math.abs(p.maxDailyLoss ?? 0),
@@ -730,11 +824,27 @@ export function startStrategy(p: StartParams) {
   };
   if (r.cfg.fast >= r.cfg.slow) return { ok: false, error: 'fast EMA period must be shorter than slow' };
 
-  runs.set(id, r);
-  persist(id, r);
+  legs.set(symbol, r);
+  persist(id);
   console.log(`[Strat:srv] START ${id} — ${r.symbol} EMA${r.cfg.fast}/${r.cfg.slow} on ${r.timeframeMin}m, HTF EMA${r.cfg.htfPeriod} on ${r.htfMin}m, x${r.count} @ ${r.volume}`);
-  evaluate(id);
-  return { ok: true, running: true };
+  evaluate(id, symbol);
+  return { ok: true, running: true, symbol };
+}
+
+/** Start several symbols at once. Partial failure is reported, not thrown. */
+export function startStrategies(p: Omit<StartParams, 'symbol'> & { symbols: string[] }) {
+  const seen = new Set<string>();
+  const started: string[] = [];
+  const rejected: { symbol: string; error: string }[] = [];
+  for (const raw of p.symbols) {
+    const symbol = (raw || '').trim(); // exact broker casing preserved
+    if (!symbol || seen.has(symbol)) continue;
+    seen.add(symbol);
+    const res: any = startStrategy({ ...p, symbol });
+    if (res.ok) started.push(symbol);
+    else rejected.push({ symbol, error: res.error || 'Failed to start' });
+  }
+  return { ok: started.length > 0, running: started.length > 0, started, rejected };
 }
 
 /**
@@ -772,19 +882,66 @@ async function sessionSummary(id: string, r: Run) {
   }
 }
 
-export async function stopStrategy(id: string, closeOpen = true) {
-  const r = runs.get(id);
-  if (!r) return { ok: true, wasRunning: false };
+/** Stop one symbol, sweeping it flat and reporting its own session. */
+export async function stopSymbolStrategy(id: string, symbol: string, closeOpen = true) {
+  const r = runOf(id, symbol);
+  if (!r) return { ok: true, wasRunning: false, symbol, flat: true, flatCheck: 'FLAT' as FlatCheck, summary: null, decisions: [] as string[] };
   r.active = false;
   if (r.timer) { clearTimeout(r.timer); r.timer = null; }
   let state: FlatCheck = 'FLAT';
   if (closeOpen) state = await closeUntilFlat(id, r);
   const summary = await sessionSummary(id, r);
   const decisions = r.history.slice(-25);
+  dropRun(id, symbol, r);
+  console.log(`[Strat:srv] STOP ${id} ${symbol} (${state})`);
+  return { ok: true, wasRunning: true, symbol, flat: state === 'FLAT', flatCheck: state, summary, decisions };
+}
+
+/**
+ * Stop everything running on an account. This is what the app's STOP calls, so
+ * one press ends every symbol the run selected.
+ *
+ * `flat` is only true when EVERY symbol was proven flat — "all closed" is a
+ * claim the user acts on, so it must not be guessed.
+ */
+export async function stopStrategy(id: string, closeOpen = true) {
+  const legs = runs.get(id);
+  if (!legs || legs.size === 0) { unpersist(id); return { ok: true, wasRunning: false }; }
+  const symbols = [...legs.keys()];
+  const results = await Promise.all(symbols.map((sym) =>
+    stopSymbolStrategy(id, sym, closeOpen).catch(() => ({
+      ok: false, wasRunning: true, symbol: sym, flat: false,
+      flatCheck: 'UNKNOWN' as FlatCheck, summary: null, decisions: [] as string[],
+    })),
+  ));
   runs.delete(id);
   unpersist(id);
-  console.log(`[Strat:srv] STOP ${id} (${state})`);
-  return { ok: true, wasRunning: true, flat: state === 'FLAT', flatCheck: state, summary, decisions };
+
+  const notFlat = results.filter((x) => !x.flat).map((x) => x.symbol);
+  // One session line for the whole run, added up from the per-symbol ones.
+  const parts = results.map((x) => x.summary).filter(Boolean) as any[];
+  const trades = parts.reduce((n, x) => n + x.trades, 0);
+  const wins = parts.reduce((n, x) => n + x.wins, 0);
+  const summary = parts.length ? {
+    trades,
+    wins,
+    losses: parts.reduce((n, x) => n + x.losses, 0),
+    winRate: trades ? Math.round((wins / trades) * 100) : 0,
+    net: Number(parts.reduce((n, x) => n + x.net, 0).toFixed(2)),
+    best: Number(Math.max(...parts.map((x) => x.best)).toFixed(2)),
+    worst: Number(Math.min(...parts.map((x) => x.worst)).toFixed(2)),
+    minutes: Math.max(...parts.map((x) => x.minutes)),
+    symbols: symbols.length,
+  } : null;
+  // Decisions are interleaved from several runs, so each line says which symbol.
+  const decisions = results.flatMap((x) => (x.decisions || []).map((d: string) => `${x.symbol}: ${d}`)).slice(-25);
+
+  console.log(`[Strat:srv] STOP ${id} (${symbols.length} symbol${symbols.length === 1 ? '' : 's'})${notFlat.length ? `, NOT flat: ${notFlat.join(', ')}` : ''}`);
+  return {
+    ok: true, wasRunning: true, stopped: symbols,
+    flat: notFlat.length === 0, notFlat, summary, decisions,
+    perSymbol: results.map((x) => ({ symbol: x.symbol, flat: x.flat, summary: x.summary })),
+  };
 }
 
 /**
@@ -809,9 +966,14 @@ export async function resumeStrategies(): Promise<void> {
 
     for (const row of rows) {
       const id = row.uuid;
-      if (runs.has(id)) continue;
-      let c: any;
-      try { c = JSON.parse(row.data); } catch { continue; }
+      let parsed: any;
+      try { parsed = JSON.parse(row.data); } catch { continue; }
+      // v2 rows hold a list; rows written before multi-symbol hold a single run
+      // object, so accept both rather than abandoning live positions.
+      const list: any[] = Array.isArray(parsed?.runs) ? parsed.runs : (parsed?.symbol ? [parsed] : []);
+      const legs = legsOf(id);
+      for (const c of list) {
+      if (!c?.symbol || legs.has(c.symbol)) continue;
 
       const r: Run = {
         symbol: c.symbol,
@@ -863,15 +1025,17 @@ export async function resumeStrategies(): Promise<void> {
         halted: false,
         haltReason: null,
       };
-      runs.set(id, r);
+      legs.set(r.symbol, r);
       note(r, 'resumed after server restart');
       console.log(`[Strat:srv] RESUME ${id} — ${r.symbol} x${r.count} @ ${r.volume}`);
 
       // Revive the broker session before the first evaluation touches anything.
       void (async () => {
         await ensureSession(id, r, true);
-        if (runs.get(id) === r && r.active) evaluate(id);
+        if (runOf(id, r.symbol) === r && r.active) evaluate(id, r.symbol);
       })();
+      }
+      if (legs.size === 0) runs.delete(id);
     }
   } catch (e: any) {
     console.error('[Strat:srv] resumeStrategies error:', e?.message || e);
@@ -879,52 +1043,80 @@ export async function resumeStrategies(): Promise<void> {
 }
 
 export function getPublicStatus(id: string) {
-  const r = runs.get(id);
-  if (!r || !r.active) return { running: false };
+  const live = liveRuns(id);
+  if (live.length === 0) return { running: false };
+  const first = live[0];
+  const names = live.map((r) => r.symbol);
+  const multi = live.length > 1;
   return {
     running: true,
-    symbol: r.symbol,
-    volume: r.volume,
-    count: r.count,
-    direction: r.held,
-    openTrades: r.tickets.length,
-    status: r.publicStatus,
-    protected: r.currentStop !== null,
-    halted: r.halted,
-    tradesPlaced: r.trades,
-    uptimeSec: Math.round((Date.now() - r.startedAt) / 1000),
+    // `symbol`, `direction` and `status` stay flat because the home banner
+    // reads them directly; with several symbols they summarise instead.
+    symbol: multi ? `${live.length} symbols` : first.symbol,
+    symbols: names,
+    symbolCount: live.length,
+    volume: first.volume,
+    count: first.count,
+    direction: multi ? null : first.held,
+    openTrades: live.reduce((n, r) => n + r.tickets.length, 0),
+    status: multi ? `Trading ${live.length} symbols` : first.publicStatus,
+    protected: live.every((r) => r.currentStop !== null),
+    halted: live.every((r) => r.halted),
+    tradesPlaced: live.reduce((n, r) => n + r.trades, 0),
+    uptimeSec: Math.round((Date.now() - Math.min(...live.map((r) => r.startedAt))) / 1000),
+    perSymbol: live.map((r) => ({
+      symbol: r.symbol,
+      direction: r.held,
+      openTrades: r.tickets.length,
+      status: r.publicStatus,
+      halted: r.halted,
+      tradesPlaced: r.trades,
+    })),
   };
 }
 
 export function getStrategyStatus(id: string) {
-  const r = runs.get(id);
-  if (!r || !r.active) return { running: false };
-  const s = r.lastSignal;
+  const live = liveRuns(id);
+  if (live.length === 0) return { running: false };
+  const first = live[0];
+  const multi = live.length > 1;
+  const detail = (r: Run) => {
+    const s = r.lastSignal;
+    return {
+      symbol: r.symbol,
+      volume: r.volume,
+      count: r.count,
+      timeframeMin: r.timeframeMin,
+      htfMin: r.htfMin,
+      config: r.cfg,
+      held: r.held,
+      hedged: r.hedged,
+      risk: r.risk,
+      entryPrice: r.entryPrice,
+      currentStop: r.currentStop,
+      halted: r.halted,
+      haltReason: r.haltReason,
+      openTickets: r.tickets.length,
+      status: r.status,
+      trades: r.trades,
+      lastBar: r.lastBar,
+      signal: s && {
+        dir: s.dir, action: s.action, reason: s.reason,
+        fast: s.fast, slow: s.slow, atr: s.atr,
+        separation: s.separation, required: s.required, exitLevel: s.exitLevel, htf: s.htf,
+      },
+      history: r.history.slice(-15),
+      uptimeSec: Math.round((Date.now() - r.startedAt) / 1000),
+    };
+  };
   return {
     running: true,
-    symbol: r.symbol,
-    volume: r.volume,
-    count: r.count,
-    timeframeMin: r.timeframeMin,
-    htfMin: r.htfMin,
-    config: r.cfg,
-    held: r.held,
-    hedged: r.hedged,
-    risk: r.risk,
-    entryPrice: r.entryPrice,
-    currentStop: r.currentStop,
-    halted: r.halted,
-    haltReason: r.haltReason,
-    openTickets: r.tickets.length,
-    status: r.status,
-    trades: r.trades,
-    lastBar: r.lastBar,
-    signal: s && {
-      dir: s.dir, action: s.action, reason: s.reason,
-      fast: s.fast, slow: s.slow, atr: s.atr,
-      separation: s.separation, required: s.required, exitLevel: s.exitLevel, htf: s.htf,
-    },
-    history: r.history.slice(-15),
-    uptimeSec: Math.round((Date.now() - r.startedAt) / 1000),
+    symbolCount: live.length,
+    symbols: live.map((r) => r.symbol),
+    // The single-symbol shape is kept at the top level so existing readers
+    // (the preflight check, the detail view) keep working unchanged.
+    ...detail(first),
+    symbol: multi ? `${live.length} symbols` : first.symbol,
+    perSymbol: live.map(detail),
   };
 }
