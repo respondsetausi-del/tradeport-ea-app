@@ -744,17 +744,23 @@ bool LogoDraw()
          double fx = (x - offX) / sxs;
          double fy = (y - offY) / sys;
 
-         uint px = 0;   // outside the artwork stays fully transparent
-         if(fx >= 0.0 && fy >= 0.0 && fx <= sw - 1 && fy <= sh - 1)
-            px = LogoSample(src, (int)sw, (int)sh, fx, fy);
-
-         uint a = (px >> 24) & 0xFF;
-         a = (uint)((a * op) / 100);
+         // The artwork is flattened to full opacity when it is built, so the
+         // alpha channel here carries nothing but the user opacity, and zero
+         // outside the image. The source alpha is deliberately NOT sampled:
+         // reading it back and letting the terminal divide colour by it is
+         // what banded the gradient.
+         bool inside = (fx >= 0.0 && fy >= 0.0 && fx <= sw - 1 && fy <= sh - 1);
+         uint px = inside ? LogoSample(src, (int)sw, (int)sh, fx, fy) : 0;
+         uint a  = inside ? (uint)((255 * op) / 100) : 0;
          dst[y * cw + x] = (px & 0x00FFFFFF) | (a << 24);
       }
    }
 
-   if(!ResourceCreate(LOGO_RES, dst, cw, ch, 0, 0, cw, COLOR_FORMAT_ARGB_NORMALIZE))
+   // Release the previous bitmap before building the next one. Creating
+   // over a live resource of the same name is what let each redraw stack
+   // on the last one, so the picture degraded the longer it ran.
+   ResourceFree(LOGO_RES);
+   if(!ResourceCreate(LOGO_RES, dst, cw, ch, 0, 0, cw, COLOR_FORMAT_ARGB_RAW))
    {
       Print("[NTS Super AI] could not build the scaled backdrop");
       return false;
