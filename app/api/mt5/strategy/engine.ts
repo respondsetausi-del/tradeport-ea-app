@@ -213,6 +213,37 @@ function note(r: Run, msg: string): void {
   if (r.history.length > 60) r.history.shift();
 }
 
+/**
+ * EVERY position on the account, or null when it cannot be read.
+ *
+ * Nothing new opens while anything at all is still open: another symbol's
+ * trades, or ones the user placed by hand. A robot stacking a position on top
+ * of one the user is nursing is exactly what this prevents.
+ */
+async function accountPositions(id: string): Promise<any[] | null> {
+  try {
+    const open = await getOpenOrders(id);
+    if (!Array.isArray(open)) return null; // unparseable — unknown, NOT empty
+    return open.filter((o: any) => o?.ticket);
+  } catch (e: any) {
+    console.error(`[Strat:srv] ${id} accountPositions error:`, e?.message || e);
+    return null;
+  }
+}
+
+/**
+ * Is the whole account clear of trades this run does not own?
+ * Returns a reason to hold off, or null to carry on.
+ */
+async function foreignPositions(id: string, r: Run): Promise<string | null> {
+  const open = await accountPositions(id);
+  if (open === null) return 'the account could not be read';
+  const foreign = open.filter((o: any) => o?.symbol !== r.symbol);
+  if (foreign.length === 0) return null;
+  const where = [...new Set(foreign.map((o: any) => String(o.symbol)))].join(', ');
+  return `${foreign.length} other trade(s) still open on ${where}`;
+}
+
 /** Positions open on this symbol, or null when the account can't be read. */
 async function openPositions(id: string, symbol: string): Promise<any[] | null> {
   try {
@@ -618,6 +649,14 @@ async function evaluate(id: string, symbol: string): Promise<void> {
         console.error(`[Strat:srv] ${id} ${target} WITHHELD — flat unproven (${state})`);
         return;
       }
+      const blocked = await foreignPositions(id, r);
+      if (!r.active) return;
+      if (blocked) {
+        note(r, `${bar}  holding off — ${blocked}`);
+        r.status = `waiting — ${blocked}`;
+        r.publicStatus = 'Waiting for your other trades to close…';
+        return;
+      }
       await openDirection(id, r, target, atrValue, price);
       await applyProtection(id, r, target, atrValue);
       r.flatSince = Date.now();
@@ -661,6 +700,14 @@ async function evaluate(id: string, symbol: string): Promise<void> {
           r.publicStatus = 'Preparing your account…';
           return;
         }
+        const blocked = await foreignPositions(id, r);
+        if (!r.active) return;
+        if (blocked) {
+          note(r, `${bar}  holding off — ${blocked}`);
+          r.status = `waiting — ${blocked}`;
+          r.publicStatus = 'Waiting for your other trades to close…';
+          return;
+        }
         await openDirection(id, r, sig.raw, atrValue, price);
         // This path used to open and walk away, never refining its levels to
         // the real fill. It now protects like every other entry.
@@ -701,6 +748,14 @@ async function evaluate(id: string, symbol: string): Promise<void> {
       return;
     }
 
+    const blocked = await foreignPositions(id, r);
+    if (!r.active) return;
+    if (blocked) {
+      note(r, `${bar}  holding off — ${blocked}`);
+      r.status = `waiting — ${blocked}`;
+      r.publicStatus = 'Waiting for your other trades to close…';
+      return;
+    }
     await openDirection(id, r, sig.dir, atrValue, price);
     await applyProtection(id, r, sig.dir, atrValue);
     note(r, `${bar}  ${sig.dir} x${r.tickets.length} — ${sig.reason}`);
