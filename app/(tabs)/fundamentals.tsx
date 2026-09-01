@@ -17,6 +17,8 @@ import { useSidebar } from '@/providers/sidebar-provider';
 import { useApp } from '@/providers/app-provider';
 import { getFundamentals, getNewsSchedules, type CalendarEvent, type NewsSchedule } from '@/services/api';
 import { SessionClocks } from '@/components/session-clocks';
+import { ImpactBulls } from '@/components/impact-bulls';
+import { CurrencyFlag } from '@/components/currency-flag';
 import { NewsTradeModal } from '@/components/news-trade-modal';
 
 /**
@@ -29,6 +31,27 @@ import { NewsTradeModal } from '@/components/news-trade-modal';
  * Data comes through our own /api/fundamentals proxy: the upstream feed sends
  * no CORS header and would be blocked in the browser/PWA.
  */
+
+type DayFilter = 'today' | 'tomorrow' | 'all';
+
+/**
+ * How long a release stays listed after its moment. A few minutes, because the
+ * figure lands on the minute and traders look at the row immediately after.
+ */
+const EXPIRY_GRACE_MS = 5 * 60_000;
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** Is this release inside the chosen window? `all` is the rest of the week. */
+function inWindow(iso: string, filter: DayFilter): boolean {
+  if (filter === 'all') return true;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return true; // undated: never hide it
+  const today = startOfDay(new Date());
+  const day = startOfDay(new Date(t));
+  const DAY = 86_400_000;
+  return filter === 'today' ? day === today : day === today + DAY;
+}
 
 const IMPACT_COLOR: Record<CalendarEvent['impact'], string> = {
   High: '#FF1A1A',
@@ -103,8 +126,28 @@ export default function FundamentalsScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  const [dayFilter, setDayFilter] = useState<DayFilter>('all');
+  // Re-evaluates once a minute so a release drops off the list as its time
+  // passes, rather than lingering until the next manual refresh.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const h = setInterval(() => setTick((n) => n + 1), 60_000);
+    return () => clearInterval(h);
+  }, []);
+
+  // Group by day, honouring the impact and day filters.
+  //
+  // A release that has already happened is dropped outright. The list exists to
+  // show what is still coming; once the moment passes there is nothing left to
+  // arm, and a stale row invites a trade that can no longer be placed.
   const days = useMemo(() => {
-    const filtered = highOnly ? events.filter((e) => e.impact === 'High') : events;
+    const now = Date.now();
+    const upcoming = events.filter((e) => {
+      const t = new Date(e.date).getTime();
+      return !Number.isFinite(t) || t >= now - EXPIRY_GRACE_MS;
+    });
+    const byImpact = highOnly ? upcoming.filter((e) => e.impact === 'High') : upcoming;
+    const filtered = byImpact.filter((e) => inWindow(e.date, dayFilter));
     const map = new Map<string, CalendarEvent[]>();
     for (const e of filtered) {
       const k = dayKey(e.date);
@@ -112,9 +155,15 @@ export default function FundamentalsScreen() {
       map.get(k)!.push(e);
     }
     return [...map.entries()];
-  }, [events, highOnly]);
+  }, [events, highOnly, dayFilter, tick]);
 
-  const highCount = useMemo(() => events.filter((e) => e.impact === 'High').length, [events]);
+  const highCount = useMemo(() => {
+    const now = Date.now();
+    return events.filter((e) => {
+      const t = new Date(e.date).getTime();
+      return e.impact === 'High' && (!Number.isFinite(t) || t >= now - EXPIRY_GRACE_MS);
+    }).length;
+  }, [events, tick]);
 
   // Scheduled news trades live on the server; this mirrors them so rows can
   // show what is armed without asking on every render.
@@ -197,6 +246,24 @@ export default function FundamentalsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Day window. `ALL` is the rest of the week, which is as far as
+          the feed goes, so it doubles as the default. */}
+      <View style={styles.dayRow}>
+        {([['today', 'TODAY'], ['tomorrow', 'TOMORROW'], ['all', 'ALL WEEK']] as const).map(([key, label]) => {
+          const on = dayFilter === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              activeOpacity={0.8}
+              onPress={() => setDayFilter(key)}
+              style={[styles.dayChip, on && { borderColor: ac + 'AA', backgroundColor: ac + '18' }]}
+            >
+              <Text style={[styles.dayChipText, on && { color: ac }]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {loading ? (
         <View style={styles.centre}>
           <ActivityIndicator color={ac} />
@@ -239,7 +306,7 @@ export default function FundamentalsScreen() {
                   >
                     <View style={styles.rowLeft}>
                       <Text style={styles.time}>{timeLabel(e.date)}</Text>
-                      <View style={[styles.impactBar, { backgroundColor: IMPACT_COLOR[e.impact] }]} />
+                      <ImpactBulls impact={e.impact} />
                     </View>
 
                     <View style={styles.rowBody}>
@@ -296,6 +363,13 @@ export default function FundamentalsScreen() {
                         </View>
                       )}
                     </View>
+
+                    {/* Trailing corner: whose currency this release moves.
+                        Aligned to the top so it tracks the title line rather
+                        than drifting down as the figures wrap. */}
+                    <View style={styles.rowFlag}>
+                      <CurrencyFlag currency={e.currency} />
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -332,6 +406,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '800', letterSpacing: 2 },
   subtitle: { color: '#808080', fontSize: 12, marginTop: 6 },
 
+  dayRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 10 },
+  dayChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  dayChipText: { fontSize: 10, fontWeight: '800', letterSpacing: 1, color: '#6B7280' },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,8 +466,8 @@ const styles = StyleSheet.create({
   },
   rowLeft: { alignItems: 'center', gap: 7, width: 60 },
   time: { color: '#B3B3B3', fontSize: 11, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  impactBar: { width: 26, height: 3, borderRadius: 2 },
   rowBody: { flex: 1, minWidth: 0 },
+  rowFlag: { paddingLeft: 10, paddingTop: 1, alignSelf: 'flex-start' },
   rowTitleLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   currency: { fontSize: 10, fontWeight: '800', letterSpacing: 1, marginTop: 1 },
   eventTitle: { color: '#FFFFFF', fontSize: 13, flex: 1, lineHeight: 18 },
