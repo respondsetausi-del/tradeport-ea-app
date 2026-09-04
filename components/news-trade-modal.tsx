@@ -14,6 +14,7 @@ import {
 import { X, Timer, Coins, Trash2, Search, Layers } from 'lucide-react-native';
 import { useTheme } from '@/providers/theme-provider';
 import { useApp } from '@/providers/app-provider';
+import { NewsCountdown } from './news-countdown';
 import {
   apiService,
   scheduleNewsTrade,
@@ -202,6 +203,8 @@ export function NewsTradeModal({
   const [testing, setTesting] = useState(false);
   const [testMsg, setTestMsg] = useState<string | null>(null);
   const [testId, setTestId] = useState<string | null>(null);
+  const [countdownAt, setCountdownAt] = useState(0);
+  const [showCountdown, setShowCountdown] = useState(false);
 
   const handleTest = async () => {
     if (!mt5Account?.uuid) { setError('Connect an MT5 account first.'); return; }
@@ -228,6 +231,9 @@ export function NewsTradeModal({
       }
       setTestId(id);
       setTestMsg(`Fires in ${secs}s\u2026`);
+      // Fill the screen with it. Purely a view: hiding it cancels nothing.
+      setCountdownAt(Date.now() + secs * 1000);
+      setShowCountdown(true);
     } catch (e: any) {
       setTesting(false);
       setTestMsg(null);
@@ -503,6 +509,22 @@ export function NewsTradeModal({
           </View>
         </KeyboardAvoidingView>
       </View>
+
+      <NewsCountdown
+        visible={showCountdown}
+        uuid={mt5Account?.uuid}
+        eventId={testId}
+        fireAt={countdownAt}
+        title={`Test flight · ${armable.map((p) => p.symbol).join(', ')}`}
+        accent={ac}
+        onHide={() => setShowCountdown(false)}
+        onCancelled={() => {
+          setShowCountdown(false);
+          setTesting(false);
+          setTestId(null);
+          setTestMsg('Cancelled.');
+        }}
+      />
     </Modal>
   );
 }

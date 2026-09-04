@@ -428,6 +428,11 @@ export interface NewsSchedule {
   symbol: string;
   /** Null until the order fires: the side is drawn server-side. */
   direction: 'Buy' | 'Sell' | null;
+  /** The way price actually moved. Null until the follow-up has judged it. */
+  followDirection?: 'Buy' | 'Sell' | null;
+  followTickets?: number[];
+  /** Epoch ms the follow-up runs. */
+  followAt?: number;
   volume: number;
   count: number;
   leadSeconds: number;

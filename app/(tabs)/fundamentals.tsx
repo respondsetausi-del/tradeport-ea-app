@@ -17,6 +17,7 @@ import { useSidebar } from '@/providers/sidebar-provider';
 import { useApp } from '@/providers/app-provider';
 import { getFundamentals, getNewsSchedules, type CalendarEvent, type NewsSchedule } from '@/services/api';
 import { SessionClocks } from '@/components/session-clocks';
+import { ArmedBanner } from '@/components/armed-banner';
 import { ImpactBulls } from '@/components/impact-bulls';
 import { CurrencyFlag } from '@/components/currency-flag';
 import { NewsTradeModal } from '@/components/news-trade-modal';
@@ -169,12 +170,19 @@ export default function FundamentalsScreen() {
   // show what is armed without asking on every render.
   const [tradeEvent, setTradeEvent] = useState<CalendarEvent | null>(null);
   const [schedules, setSchedules] = useState<NewsSchedule[]>([]);
+  // Re-read periodically so the armed reminder reflects the server rather
+  // than whatever was true when this screen was opened.
+  const [scheduleTick, setScheduleTick] = useState(0);
+  useEffect(() => {
+    const h = setInterval(() => setScheduleTick((n) => n + 1), 15_000);
+    return () => clearInterval(h);
+  }, []);
 
   const refreshSchedules = useCallback(async () => {
     const uuid = mt5Account?.uuid;
     if (!uuid) { setSchedules([]); return; }
     setSchedules(await getNewsSchedules(uuid));
-  }, [mt5Account?.uuid]);
+  }, [mt5Account?.uuid, scheduleTick]);
 
   useEffect(() => { void refreshSchedules(); }, [refreshSchedules]);
 
@@ -221,6 +229,9 @@ export default function FundamentalsScreen() {
 
       {/* Which desks are awake, above the calendar it frames. */}
       <SessionClocks />
+
+      {/* Anything that fires on its own has to keep saying so. */}
+      <ArmedBanner schedules={schedules} accent={ac} />
 
       <View style={styles.controls}>
         <View style={styles.pillRow}>
