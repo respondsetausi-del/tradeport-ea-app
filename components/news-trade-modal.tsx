@@ -21,7 +21,6 @@ import {
   type CalendarEvent,
   type NewsSchedule,
 } from '@/services/api';
-import { computeBias, autoLot, type NewsBias } from '@/utils/news-bias';
 
 /**
  * Automate a calendar release.
@@ -34,9 +33,18 @@ import { computeBias, autoLot, type NewsBias } from '@/utils/news-bias';
  * instruments, and a wall of chips is slower to use than typing three letters.
  * Several can be armed at once, each getting its own schedule.
  *
- * Direction is derived, never chosen: see utils/news-bias.ts. It reads the
- * indicator's polarity, forecast vs previous, and whether the event currency is
- * the base or quote of the pair.
+ * Nothing here decides or shows a side, and that is deliberate. Two batches go
+ * on, and neither is a prediction made in this screen:
+ *
+ *   1. Before the release, the server draws Buy or Sell at random. Reading the
+ *      forecast against the previous print was a false comfort, because the
+ *      first move is a scramble for liquidity rather than a considered
+ *      response to the number.
+ *   2. After the release has settled, the server reads which way price
+ *      ACTUALLY went and adds the same number of orders in that direction.
+ *
+ * Neither side is shown before it exists, because there is nothing to show.
+ *
  */
 
 const LEAD_PRESETS = [
@@ -66,7 +74,6 @@ export function NewsTradeModal({
   const { mt5Symbols, mt5Account } = useApp();
 
   const [selected, setSelected] = useState<string[]>([]);
-  const [autoWeight, setAutoWeight] = useState(true);
   const [leadSeconds, setLeadSeconds] = useState('60');
   const [count, setCount] = useState('1');
   const [baseLot, setBaseLot] = useState('0.01');
@@ -100,7 +107,6 @@ export function NewsTradeModal({
     const cur = (event.currency || '').toUpperCase();
     const match = mt5Symbols.find((m: any) => m.symbol.toUpperCase().includes(cur));
     setSelected(match ? [match.symbol] : []);
-    setAutoWeight(true);
     setLeadSeconds('60');
     setCount('1');
     setBaseLot((match as any)?.lotSize || '0.01');
@@ -131,20 +137,14 @@ export function NewsTradeModal({
     if (!event) return [];
     const base = parseFloat(baseLot) || 0;
     return selected.map((symbol) => {
-      const bias: NewsBias = computeBias(event, symbol);
       const cfg: any = mt5Symbols.find((m: any) => m.symbol === symbol);
-      const symBase = parseFloat(cfg?.lotSize || '') || base;
-      return {
-        symbol,
-        bias,
-        direction: bias.direction,
-        volume: autoWeight ? autoLot(symBase, bias) : symBase,
-      };
+      return { symbol, volume: parseFloat(cfg?.lotSize || '') || base };
     });
-  }, [selected, event, autoWeight, baseLot, mt5Symbols]);
+  }, [selected, event, baseLot, mt5Symbols]);
 
-  const armable = plan.filter((p) => p.direction && p.volume > 0);
-  const skipped = plan.filter((p) => !p.direction);
+  // Every selected symbol arms. There is no lean to read, so there is nothing
+  // to skip on.
+  const armable = plan.filter((p) => p.volume > 0);
 
   const add = (sym: string) => {
     setSelected((prev) => (prev.includes(sym) ? prev : [...prev, sym]));
@@ -155,11 +155,7 @@ export function NewsTradeModal({
   const handleArm = async () => {
     if (!event || !mt5Account?.uuid) { setError('Connect an MT5 account first.'); return; }
     if (armable.length === 0) {
-      setError(
-        skipped.length > 0
-          ? 'None of the selected symbols has a readable lean — pick a pair the release bears on.'
-          : 'Search and add at least one symbol.',
-      );
+      setError('Search and add at least one symbol.');
       return;
     }
     setBusy(true);
@@ -173,7 +169,6 @@ export function NewsTradeModal({
           eventTitle: event.title,
           currency: event.currency,
           symbol: p.symbol,
-          direction: p.direction as 'Buy' | 'Sell',
           volume: p.volume,
           count: parseInt(count, 10) || 1,
           leadSeconds: lead,
@@ -235,7 +230,7 @@ export function NewsTradeModal({
                   {armed.map((s) => (
                     <View key={`${s.eventId}-${s.symbol}`} style={styles.armedRow}>
                       <Text style={styles.armedText} numberOfLines={1}>
-                        {s.direction.toUpperCase()} {s.symbol} ×{s.count} @ {s.volume} · {s.leadSeconds}s before
+                        {s.symbol} ×{s.count} @ {s.volume} · {s.leadSeconds}s before
                       </Text>
                       <TouchableOpacity onPress={() => handleCancel(s)} hitSlop={10} disabled={busy}>
                         <Trash2 color="#FF1A1A" size={15} />
@@ -300,16 +295,7 @@ export function NewsTradeModal({
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity onPress={() => setAutoWeight((v) => !v)} activeOpacity={0.8} style={styles.weightRow}>
-                <Text style={styles.weightLabel}>Auto weight by conviction</Text>
-                <View style={[styles.track, autoWeight && { backgroundColor: ac }]}>
-                  <View style={[styles.thumb, { transform: [{ translateX: autoWeight ? 14 : 0 }] }]} />
-                </View>
-              </TouchableOpacity>
-
-              <Text style={styles.label}>
-                {autoWeight ? 'BASE LOT (SCALED BY CONVICTION)' : 'LOT SIZE'}
-              </Text>
+              <Text style={styles.label}>LOT SIZE</Text>
               <View style={styles.searchWrap}>
                 <Coins size={15} color={ac} style={styles.searchIcon} />
                 <TextInput
@@ -364,18 +350,9 @@ export function NewsTradeModal({
                   <Text style={styles.label}>WILL ARM</Text>
                   {plan.map((p) => (
                     <View key={p.symbol} style={styles.planRow}>
-                      <Text
-                        style={[
-                          styles.planText,
-                          { color: p.direction ? (p.direction === 'Buy' ? '#00FF88' : '#FF1A1A') : '#808080' },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {p.direction
-                          ? `${count || 1} × ${p.direction.toUpperCase()} ${p.symbol} @ ${p.volume}`
-                          : `${p.symbol} — skipped`}
+                      <Text style={styles.planText} numberOfLines={1}>
+                        {`${count || 1} × ${p.symbol} @ ${p.volume}`}
                       </Text>
-                      <Text style={styles.planWhy} numberOfLines={3}>{p.bias.rationale}</Text>
                     </View>
                   ))}
                 </View>

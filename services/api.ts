@@ -426,7 +426,8 @@ export interface NewsSchedule {
   eventTitle: string;
   currency: string;
   symbol: string;
-  direction: 'Buy' | 'Sell';
+  /** Null until the order fires: the side is drawn server-side. */
+  direction: 'Buy' | 'Sell' | null;
   volume: number;
   count: number;
   leadSeconds: number;
@@ -439,17 +440,20 @@ export interface NewsSchedule {
 
 export async function scheduleNewsTrade(params: {
   uuid: string; eventId: string; eventTitle: string; currency: string;
-  symbol: string; direction: 'Buy' | 'Sell'; volume: number; count: number;
+  symbol: string; volume: number; count: number;
   leadSeconds: number; eventAt: number;
+  /** Optional: compress the settling window, for a test flight. */
+  followSeconds?: number;
 }): Promise<NewsSchedule> {
   const res = await fetch(`${BASE_URL}/api/news/schedule`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       id: params.uuid, event_id: params.eventId, event_title: params.eventTitle,
-      currency: params.currency, symbol: params.symbol, direction: params.direction,
+      currency: params.currency, symbol: params.symbol,
       volume: params.volume, count: params.count,
       lead_seconds: params.leadSeconds, event_at: params.eventAt,
+      follow_seconds: params.followSeconds,
     }),
   });
   const data = await res.json().catch(() => ({}));

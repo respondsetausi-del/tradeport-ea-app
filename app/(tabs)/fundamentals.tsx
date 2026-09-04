@@ -351,12 +351,9 @@ export default function FundamentalsScreen() {
                               ]}
                             >
                               <Text
-                                style={[
-                                  styles.armedChipText,
-                                  { color: x.direction === 'Buy' ? '#00FF88' : '#FF1A1A' },
-                                ]}
+                                style={styles.armedChipText}
                               >
-                                {x.direction.toUpperCase()} {x.symbol} ×{x.count} · {x.leadSeconds}s
+                                {x.symbol} ×{x.count} · {x.leadSeconds}s
                               </Text>
                             </View>
                           ))}
