@@ -8,7 +8,7 @@
 // Follows the batch engine's shape: in-memory timers, best-effort MySQL
 // persistence, resume-on-boot, and the same PERSIST guard so a local dev
 // server sharing production MySQL cannot reload and fire real schedules.
-import { orderSend, getQuote } from '@/services/api2trade';
+import { orderSend, getQuote, getAccountSummary } from '@/services/api2trade';
 import { getPool } from '@/app/api/_db';
 
 export type NewsDirection = 'Buy' | 'Sell';
@@ -91,7 +91,65 @@ const LATE_GRACE_MS = 120_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Keeping the broker session alive between arming and firing.
+ *
+ * A schedule armed for later fires into a session that has sat idle the whole
+ * time, quite possibly with the app closed. Api2Trade sessions expire, and the
+ * password is deliberately never stored on this server, so it cannot
+ * re-authenticate on its own.
+ *
+ * Two things it can do instead:
+ *
+ *   • stop the session going idle at all, by touching it every few minutes for
+ *     as long as anything is armed
+ *   • check it is still there immediately before firing, so a dead session
+ *     reads as a dead session rather than as ten separate order rejections
+ *
+ * The touch is a plain account read: cheap, and enough to count as activity.
+ */
+const SESSION_PING_MS = 4 * 60_000;
+let sessionTimer: ReturnType<typeof setInterval> | null = null;
+
 const schedules = new Map<string, NewsSchedule>();
+
+/** Every account with something still armed. */
+function armedAccounts(): string[] {
+  const out = new Set<string>();
+  for (const [, s] of schedules) if (s.status === 'armed') out.add(s.uuid);
+  return Array.from(out);
+}
+
+function stopSessionWarm(): void {
+  if (sessionTimer) {
+    clearInterval(sessionTimer);
+    sessionTimer = null;
+    console.log('[News:srv] session keep-warm stopped — nothing armed');
+  }
+}
+
+function ensureSessionWarm(): void {
+  if (sessionTimer) return;
+  sessionTimer = setInterval(() => {
+    const accounts = armedAccounts();
+    if (accounts.length === 0) { stopSessionWarm(); return; }
+    for (const uuid of accounts) {
+      // Fire and forget: this exists to be activity, not to be read.
+      getAccountSummary(uuid).catch(() => {});
+    }
+  }, SESSION_PING_MS);
+  console.log('[News:srv] session keep-warm started');
+}
+
+/** Is the broker session still usable? Unknown counts as dead. */
+async function sessionAlive(uuid: string): Promise<boolean> {
+  try {
+    const a: any = await getAccountSummary(uuid);
+    return !!a && (Number.isFinite(Number(a.balance)) || Number.isFinite(Number(a.leverage)));
+  } catch {
+    return false;
+  }
+}
 let tableReady = false;
 
 // Same guard as the batch engine: without it a local server pointed at the
@@ -161,6 +219,19 @@ async function fire(key: string): Promise<void> {
   const early = s.fireAt - Date.now();
   if (early > 1_000) {
     arm(key, s);
+    return;
+  }
+
+  // The session has been idle since this was armed, possibly for hours with
+  // the app shut. Establish it is still there first: a dead session should
+  // read as a dead session, not as a batch of unexplained rejections.
+  if (!(await sessionAlive(s.uuid))) {
+    s.status = 'failed';
+    s.timer = null;
+    s.message = 'MT5 session expired while waiting — reconnect the account and arm it again';
+    console.error(`[News:srv] ${key} NOT FIRED — broker session is gone`);
+    persist(key, s);
+    stopSessionWarm();
     return;
   }
 
@@ -361,6 +432,7 @@ export function scheduleNews(params: {
   schedules.set(key, s);
   arm(key, s);
   persist(key, s);
+  ensureSessionWarm();
 
   const mins = Math.round((s.fireAt - Date.now()) / 60000);
   console.log(
@@ -383,6 +455,7 @@ export function cancelNews(uuid: string, eventId: string, symbol: string): boole
   s.status = 'cancelled';
   schedules.delete(key);
   forget(key);
+  if (armedAccounts().length === 0) stopSessionWarm();
   console.log(`[News:srv] cancelled ${key}`);
   return true;
 }
@@ -438,6 +511,7 @@ export async function resumeNews(): Promise<void> {
       } catch {}
     }
     console.log(`[News:srv] resumed ${restored} armed schedule(s)`);
+    if (restored > 0) ensureSessionWarm();
   } catch (e: any) {
     console.error('[News:srv] resume error:', e?.message || e);
   }
