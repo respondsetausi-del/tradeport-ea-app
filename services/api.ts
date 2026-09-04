@@ -438,7 +438,7 @@ export interface NewsSchedule {
   leadSeconds: number;
   eventAt: number;
   fireAt: number;
-  status: 'armed' | 'fired' | 'failed' | 'cancelled';
+  status: 'armed' | 'fired' | 'failed' | 'cancelled' | 'missed';
   tickets: number[];
   message: string;
 }

@@ -284,7 +284,10 @@ export function NewsTradeModal({
   const field = [styles.input, { borderColor: `rgba(${a}, 0.35)` }];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <>
+    {/* Exactly one modal at a time: a <Modal> inside another <Modal>
+        blacks out and freezes on React Native Web. */}
+    <Modal visible={visible && !showCountdown} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.centre}>
           <View style={[styles.card, { borderColor: `rgba(${a}, 0.35)` }]}>
@@ -510,6 +513,7 @@ export function NewsTradeModal({
         </KeyboardAvoidingView>
       </View>
 
+    </Modal>
       <NewsCountdown
         visible={showCountdown}
         uuid={mt5Account?.uuid}
@@ -525,7 +529,7 @@ export function NewsTradeModal({
           setTestMsg('Cancelled.');
         }}
       />
-    </Modal>
+    </>
   );
 }
 
