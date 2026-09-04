@@ -57,7 +57,9 @@ export function NewsCountdown({
     if (!visible) return;
     opened.current = Date.now();
     setNow(Date.now());
-    const h = setInterval(() => setNow(Date.now()), 250);
+    // Twice a second is smooth enough for a seconds display and half the
+    // re-renders of a quarter-second tick.
+    const h = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(h);
   }, [visible]);
 

@@ -35,7 +35,7 @@ export interface NewsSchedule {
   eventAt: number;
   /** Absolute epoch ms the order fires (eventAt - leadSeconds). */
   fireAt: number;
-  status: 'armed' | 'fired' | 'failed' | 'cancelled';
+  status: 'armed' | 'fired' | 'failed' | 'cancelled' | 'missed';
   tickets: number[];
   message: string;
   timer: ReturnType<typeof setTimeout> | null;
@@ -77,6 +77,17 @@ const MIN_FOLLOW_MS = 1_000;
  * almost nothing and gets them filled.
  */
 const ORDER_GAP_MS = 250;
+
+/**
+ * How late a schedule may fire and still be worth taking.
+ *
+ * A process restart, a deploy, or a slow boot can leave a moment a little
+ * behind us. Two minutes late on a release is still the same move; ten minutes
+ * late is a different market. Past this it is recorded as missed rather than
+ * fired blind, and rather than deleted, because a schedule that vanished
+ * silently is indistinguishable from one that was never armed.
+ */
+const LATE_GRACE_MS = 120_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -144,6 +155,14 @@ function forget(key: string): void {
 async function fire(key: string): Promise<void> {
   const s = schedules.get(key);
   if (!s || s.status !== 'armed') return;
+
+  // Never fire early. setTimeout caps at ~24.8 days, so a long-dated schedule
+  // reaches this function at the cap instead of at its moment; re-arm and wait.
+  const early = s.fireAt - Date.now();
+  if (early > 1_000) {
+    arm(key, s);
+    return;
+  }
 
   // A release is a coin toss. Nothing here reads the figure, the forecast or
   // the previous print, because none of that predicts the first move: the spike
@@ -393,10 +412,23 @@ export async function resumeNews(): Promise<void> {
       try {
         const parsed = JSON.parse(row.data);
         if (parsed.status !== 'armed') continue;
-        // A release that already passed while the server was down is not worth
-        // entering late: the move has happened. Drop it rather than fire blind.
-        if (parsed.fireAt <= Date.now()) {
-          forget(row.id);
+        // A moment that passed while the server was down. Inside the grace
+        // window the move is still the same one, so take it. Beyond that,
+        // record it as MISSED rather than deleting it: a schedule that
+        // vanished without trace is indistinguishable from one that was
+        // never armed, and that is exactly the question you ask afterwards.
+        const late = Date.now() - parsed.fireAt;
+        if (late > LATE_GRACE_MS) {
+          const missed: NewsSchedule = {
+            ...parsed,
+            timer: null,
+            followTimer: null,
+            status: 'missed',
+            message: `Missed: the server was not running at ${new Date(parsed.fireAt).toISOString()}`,
+          };
+          schedules.set(row.id, missed);
+          persist(row.id, missed);
+          console.error(`[News:srv] MISSED ${row.id} — ${Math.round(late / 1000)}s late, nothing opened`);
           continue;
         }
         const s: NewsSchedule = { ...parsed, timer: null };
