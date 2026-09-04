@@ -1,5 +1,5 @@
 // News trade scheduling: arm, list, cancel.
-import { scheduleNews, cancelNews, listNews, type NewsDirection } from '../engine';
+import { scheduleNews, cancelNews, listNews } from '../engine';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -25,17 +25,16 @@ export async function POST(request: Request): Promise<Response> {
   const uuid = String(body?.id ?? '').trim();
   const eventId = String(body?.event_id ?? '').trim();
   const symbol = String(body?.symbol ?? '').trim().toUpperCase();
-  const direction = String(body?.direction ?? '') as NewsDirection;
   const eventAt = Number(body?.event_at);
   const leadSeconds = Number(body?.lead_seconds);
   const count = Number(body?.count);
   const volume = Number(body?.volume);
+  // Optional: a test flight compresses the settling window so the whole
+  // sequence can be watched in seconds rather than minutes.
+  const followSeconds = body?.follow_seconds === undefined ? undefined : Number(body.follow_seconds);
 
   if (!uuid || !eventId || !symbol) {
     return json({ error: 'id, event_id and symbol are required' }, 400);
-  }
-  if (direction !== 'Buy' && direction !== 'Sell') {
-    return json({ error: 'direction must be Buy or Sell' }, 400);
   }
   if (!Number.isFinite(eventAt)) {
     return json({ error: 'event_at must be an epoch timestamp in ms' }, 400);
@@ -51,6 +50,9 @@ export async function POST(request: Request): Promise<Response> {
   if (!Number.isFinite(volume) || volume <= 0 || volume > 100) {
     return json({ error: 'volume must be greater than 0 and at most 100' }, 400);
   }
+  if (followSeconds !== undefined && (!Number.isFinite(followSeconds) || followSeconds < 1 || followSeconds > 3600)) {
+    return json({ error: 'follow_seconds must be between 1 and 3600' }, 400);
+  }
 
   const fireAt = eventAt - leadSeconds * 1000;
   if (fireAt <= Date.now()) {
@@ -63,11 +65,11 @@ export async function POST(request: Request): Promise<Response> {
     eventTitle: String(body?.event_title ?? 'Event'),
     currency: String(body?.currency ?? ''),
     symbol,
-    direction,
     volume,
     count,
     leadSeconds,
     eventAt,
+    followSeconds,
   });
 
   return json({ ok: true, key, schedule });
