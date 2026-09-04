@@ -18,6 +18,7 @@ import {
   apiService,
   scheduleNewsTrade,
   cancelNewsSchedule,
+  getNewsSchedules,
   type CalendarEvent,
   type NewsSchedule,
 } from '@/services/api';
@@ -183,6 +184,82 @@ export function NewsTradeModal({
     if (failures.length > 0) setError(failures.join('\n'));
     else onClose();
   };
+
+  // ── Test flight ───────────────────────────────────────────────────
+  //
+  // A dry run through the SAME path the AUTOMATE button uses: same client
+  // call, same route, same fire(), same follow-up. Only two things differ,
+  // and neither touches how it executes:
+  //
+  //   • the event is invented, so it can fire seconds from now instead of
+  //     whenever the calendar says
+  //   • the settling window is compressed, so the follow-up lands in fifteen
+  //     seconds rather than ninety
+  //
+  // It uses the symbols, lot and order count already set above, so what you
+  // watch is what the real release will do. These are REAL orders.
+  const [testSecs, setTestSecs] = useState('5');
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
+  const [testId, setTestId] = useState<string | null>(null);
+
+  const handleTest = async () => {
+    if (!mt5Account?.uuid) { setError('Connect an MT5 account first.'); return; }
+    if (armable.length === 0) { setError('Search and add at least one symbol.'); return; }
+    const secs = Math.max(1, parseInt(testSecs, 10) || 5);
+    setTesting(true);
+    setError(null);
+    setTestMsg('Arming\u2026');
+    const id = `testflight-${Date.now()}`;
+    try {
+      for (const p of armable) {
+        await scheduleNewsTrade({
+          uuid: mt5Account.uuid,
+          eventId: id,
+          eventTitle: 'Test flight',
+          currency: event?.currency || '',
+          symbol: p.symbol,
+          volume: p.volume,
+          count: parseInt(count, 10) || 1,
+          leadSeconds: 0,
+          eventAt: Date.now() + secs * 1000,
+          followSeconds: 15,
+        });
+      }
+      setTestId(id);
+      setTestMsg(`Fires in ${secs}s\u2026`);
+    } catch (e: any) {
+      setTesting(false);
+      setTestMsg(null);
+      setError(e?.message || 'Could not start the test flight.');
+    }
+  };
+
+  // Watch it happen. Stops once every symbol has resolved, or after two
+  // minutes, so a broker that never answers cannot poll forever.
+  useEffect(() => {
+    if (!testId || !mt5Account?.uuid) return;
+    const uuid = mt5Account.uuid;
+    const started = Date.now();
+    const h = setInterval(async () => {
+      try {
+        const all = await getNewsSchedules(uuid);
+        const mine = all.filter((s) => s.eventId === testId);
+        if (mine.length === 0) return;
+        setTestMsg(mine.map((s) => `${s.symbol}: ${s.message || s.status}`).join('\n'));
+        const settled = mine.every(
+          (s) => s.status === 'failed' || /followed|skipped/.test(s.message || ''),
+        );
+        if (settled || Date.now() - started > 120_000) {
+          clearInterval(h);
+          setTesting(false);
+        }
+      } catch {
+        /* a dropped poll is not a failed run; the next tick tries again */
+      }
+    }, 1500);
+    return () => clearInterval(h);
+  }, [testId, mt5Account?.uuid]);
 
   const handleCancel = async (s: NewsSchedule) => {
     if (!mt5Account?.uuid) return;
@@ -388,9 +465,40 @@ export function NewsTradeModal({
                   </Text>
                 )}
             </TouchableOpacity>
+            {/* The same path the button above takes, on a made-up event a few
+                seconds out, so you can watch it execute instead of trusting it. */}
+            <View style={styles.testRow}>
+              <Text style={styles.testLabel}>TEST IN</Text>
+              <TextInput
+                style={styles.testInput}
+                value={testSecs}
+                onChangeText={setTestSecs}
+                keyboardType="number-pad"
+                maxLength={4}
+                placeholderTextColor="#5A6166"
+              />
+              <Text style={styles.testLabel}>SEC</Text>
+              <TouchableOpacity
+                onPress={handleTest}
+                disabled={busy || testing || armable.length === 0}
+                activeOpacity={0.85}
+                style={[
+                  styles.testBtn,
+                  { borderColor: ac },
+                  (busy || testing || armable.length === 0) && { opacity: 0.45 },
+                ]}
+              >
+                <Text style={[styles.testBtnText, { color: ac }]}>
+                  {testing ? 'RUNNING\u2026' : 'TEST FLIGHT'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {!!testMsg && <Text style={styles.testMsg}>{testMsg}</Text>}
+
             <Text style={styles.footnote}>
-              Direction is read from forecast vs previous before the print, so it is a lean,
-              not a signal. Runs on the server, so it fires with the app closed.
+              No side is chosen here. The server draws Buy or Sell as the order fires,
+              then adds the same size again in whichever direction price actually moved.
+              Runs on the server, so it fires with the app closed.
             </Text>
           </View>
         </KeyboardAvoidingView>
@@ -400,6 +508,16 @@ export function NewsTradeModal({
 }
 
 const styles = StyleSheet.create({
+  testRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  testLabel: { color: '#808080', fontSize: 10, fontWeight: '700', letterSpacing: 0.6 },
+  testInput: {
+    width: 54, color: '#FFFFFF', fontSize: 12, fontWeight: '700', textAlign: 'center',
+    paddingVertical: 6, borderRadius: 7, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  testBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  testBtnText: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.9 },
+  testMsg: { color: '#9AA0A5', fontSize: 10.5, lineHeight: 15, marginTop: 6 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' },
   centre: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 18 },
   card: {
